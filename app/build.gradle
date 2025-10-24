@@ -1,0 +1,94 @@
+plugins {
+    alias(libs.plugins.android.application)
+}
+
+// Load properties from local.properties file
+def localPropertiesFile = rootProject.file("local.properties")
+def localProperties = new Properties()
+if (localPropertiesFile.exists()) {
+    localProperties.load(new FileInputStream(localPropertiesFile))
+}
+
+android {
+    namespace 'com.example.ecowattchtechdemo'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId "com.example.ecowattchtechdemo"
+        minSdk 23
+        targetSdk 35
+        versionCode 1
+        versionName "1.0"
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        
+        // Add BuildConfig fields for API keys and configuration
+        buildConfigField "String", "DB_USER", "\"${localProperties.getProperty('DB_USER', '')}\""
+        buildConfigField "String", "DB_PASSWORD", "\"${localProperties.getProperty('DB_PASSWORD', '')}\""
+        buildConfigField "String", "DB_SERVER", "\"${localProperties.getProperty('DB_SERVER', '')}\""
+        buildConfigField "String", "DB_DATABASE", "\"${localProperties.getProperty('DB_DATABASE', '')}\""
+        buildConfigField "boolean", "DB_ENCRYPT", "${localProperties.getProperty('DB_ENCRYPT', 'true')}"
+        
+        buildConfigField "String", "WILLOW_BASE_URL", "\"${localProperties.getProperty('WILLOW_BASE_URL', '')}\""
+        buildConfigField "String", "WILLOW_CLIENT_ID", "\"${localProperties.getProperty('WILLOW_CLIENT_ID', '')}\""
+        buildConfigField "String", "WILLOW_CLIENT_SECRET", "\"${localProperties.getProperty('WILLOW_CLIENT_SECRET', '')}\""
+        
+        buildConfigField "String", "TWIN_ID_TINSLEY", "\"${localProperties.getProperty('TWIN_ID_TINSLEY', '')}\""
+        buildConfigField "String", "TWIN_ID_GABALDON", "\"${localProperties.getProperty('TWIN_ID_GABALDON', '')}\""
+        buildConfigField "String", "TWIN_ID_SECHRIST", "\"${localProperties.getProperty('TWIN_ID_SECHRIST', '')}\""
+        
+        buildConfigField "int", "SERVER_PORT", "${localProperties.getProperty('SERVER_PORT', '3000')}"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+        debug {
+            // Debug builds can access BuildConfig fields
+            debuggable true
+        }
+    }
+    
+    buildFeatures {
+        buildConfig true  // Enable BuildConfig generation
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+
+    implementation libs.appcompat
+    implementation libs.material
+    implementation libs.activity
+    implementation libs.constraintlayout
+    implementation "androidx.core:core-ktx:1.16.0"
+    implementation 'androidx.cardview:cardview:1.0.0'
+    implementation 'androidx.recyclerview:recyclerview:1.3.2'
+    implementation 'com.github.PhilJay:MPAndroidChart:v3.1.0'
+    implementation 'androidx.viewpager2:viewpager2:1.0.0'
+    implementation 'androidx.fragment:fragment:1.6.2'
+    
+    // ViewModel and LiveData
+    implementation 'androidx.lifecycle:lifecycle-viewmodel:2.7.0'
+    implementation 'androidx.lifecycle:lifecycle-livedata:2.7.0'
+    implementation 'androidx.lifecycle:lifecycle-common-java8:2.7.0'
+    
+    // Network dependencies for Willow API
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+    implementation 'com.squareup.okhttp3:logging-interceptor:4.12.0'
+    implementation 'com.google.code.gson:gson:2.10.1'
+    testImplementation libs.junit
+    androidTestImplementation libs.ext.junit
+    androidTestImplementation libs.espresso.core
+
+    //stuff to make post requests work for the log in system
+    implementation 'com.squareup.retrofit2:retrofit:2.9.0'
+    implementation 'com.squareup.retrofit2:converter-gson:2.9.0'
+    implementation 'org.json:json:20240303'
+    implementation 'com.android.volley:volley:1.2.1'
+}

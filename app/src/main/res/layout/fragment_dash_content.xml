@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".DashContentFragment">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_vertical"
+        android:orientation="vertical"
+        android:paddingLeft="32dp"
+        android:paddingRight="32dp"
+        android:layout_marginTop="-120dp">
+
+        <!-- Dorm Status -->
+        <TextView
+            android:id="@+id/username_text"
+            android:tag="primary_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:fontFamily="@font/matrixtype_display"
+            android:text="TINSLEY - 1ST PLACE"
+            android:textColor="@color/white"
+            android:textSize="16sp" />
+
+        <!-- Current Usage -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="4dp"
+            android:baselineAligned="false">
+
+            <TextView
+                android:id="@+id/current_usage_text"
+                android:tag="primary_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/matrixtype_display"
+                android:text="280"
+                android:textColor="@color/white"
+                android:textSize="110sp" />
+
+            <TextView
+                android:id="@+id/usage_unit_text"
+                android:tag="accent_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/matrixtype_display"
+                android:text="kw"
+                android:textColor="@color/text_red"
+                android:textSize="50sp"
+                android:layout_gravity="bottom"
+                android:layout_marginBottom="8dp" />
+
+        </LinearLayout>
+
+        <!-- Yesterday's Total -->
+        <TextView
+            android:id="@+id/yesterdays_total_text"
+            android:tag="secondary_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:fontFamily="@font/matrixtype_display"
+            android:text="Yesterdays Total: 5297kwh"
+            android:textColor="@color/text_secondary"
+            android:textSize="12sp" />
+
+        <!-- Potential Energy Pill -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:background="@drawable/pill_background"
+            android:paddingHorizontal="24dp"
+            android:paddingVertical="10dp"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/potential_energy_text"
+                android:tag="accent_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/matrixtype_display"
+                android:text="237"
+                android:textColor="@color/text_red"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/potential_energy_label"
+                android:tag="primary_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/matrixtype_display"
+                android:text=" Potential Energy"
+                android:textColor="@color/white"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+        </LinearLayout>
+
+        <!-- Leaderboard -->
+        <TextView
+            android:tag="primary_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:fontFamily="@font/matrixtype_display"
+            android:text="Leaderboard"
+            android:textColor="@color/white"
+            android:textSize="16sp"
+            android:drawablePadding="4dp"
+            android:paddingBottom="4dp"
+            android:background="@drawable/underline_background" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="32dp"
+            android:orientation="vertical">
+
+            <TextView
+                android:tag="primary_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:fontFamily="@font/matrixtype_display"
+                android:text="1st: Tinsley"
+                android:textColor="@color/white"
+                android:textSize="14sp" />
+
+            <TextView
+                android:tag="primary_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="10sp"
+                android:fontFamily="@font/matrixtyp_display_bold"
+                android:gravity="center"
+                android:text="2nd: Gabaldon"
+                android:textColor="@color/white"
+                android:textSize="14sp" />
+
+            <TextView
+                android:tag="primary_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/matrixtyp_display_bold"
+                android:gravity="center"
+                android:text="3rd: Sechrist"
+                android:textColor="@color/white"
+                android:textSize="14sp" />
+
+        </LinearLayout>
+        
+        <!-- Refresh Button at the bottom -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:gravity="center">
+            
+            <TextView
+                android:id="@+id/refresh_button"
+                android:tag="accent_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/pill_background"
+                android:clickable="true"
+                android:focusable="true"
+                android:fontFamily="@font/matrixtype_display"
+                android:gravity="center"
+                android:paddingHorizontal="30dp"
+                android:paddingVertical="12dp"
+                android:text="🔄 REFRESH"
+                android:textColor="@color/text_red"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+                
+        </LinearLayout>
+
+    </LinearLayout>
+
+</FrameLayout>
