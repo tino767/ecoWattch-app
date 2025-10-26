@@ -333,6 +333,114 @@
                     android:textStyle="bold"
                     android:fontFamily="@font/matrixtype_display" />
 
+                <!-- checklist item 1 -->
+                <LinearLayout
+                    android:id="@+id/checklist_item_1"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:background="@drawable/pill_background"
+                    android:paddingHorizontal="10dp"
+                    android:paddingVertical="10dp">
+
+                    <ImageView
+                        android:tag="accent_color"
+                        android:layout_width="36dp"
+                        android:layout_height="36dp"
+                        android:layout_alignParentTop="true"
+                        android:layout_alignParentEnd="true"
+                        android:layout_marginEnd="16dp"
+                        android:background="@drawable/button_background"
+                        android:src="@android:drawable/ic_menu_preferences"
+                        app:tint="@color/text_red"
+                        android:padding="8dp"
+                        android:contentDescription="checklist item 1"
+                        android:elevation="10dp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="match_parent"
+                        android:fontFamily="@font/matrixtype_display"
+                        android:gravity="center_vertical"
+                        android:tag="primary_text"
+                        android:text="Log in to ecoWattch app"
+                        android:textColor="@color/white"
+                        android:textSize="14sp" />
+
+                </LinearLayout>
+
+                <!-- checklist item 2 -->
+                <LinearLayout
+                    android:id="@+id/checklist_item_2"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:background="@drawable/pill_background"
+                    android:paddingHorizontal="10dp"
+                    android:paddingVertical="10dp">
+
+                    <ImageView
+                        android:tag="accent_color"
+                        android:layout_width="36dp"
+                        android:layout_height="36dp"
+                        android:layout_alignParentTop="true"
+                        android:layout_alignParentEnd="true"
+                        android:layout_marginEnd="16dp"
+                        android:background="@drawable/button_background"
+                        android:src="@android:drawable/ic_menu_preferences"
+                        app:tint="@color/text_red"
+                        android:padding="8dp"
+                        android:contentDescription="checklist item 1"
+                        android:elevation="10dp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="match_parent"
+                        android:fontFamily="@font/matrixtype_display"
+                        android:gravity="center_vertical"
+                        android:tag="primary_text"
+                        android:text="Turn off lights in your room"
+                        android:textColor="@color/white"
+                        android:textSize="14sp" />
+
+                </LinearLayout>
+
+                <!-- checklist item 3 -->
+                <LinearLayout
+                    android:id="@+id/checklist_item_3"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:background="@drawable/pill_background"
+                    android:paddingHorizontal="10dp"
+                    android:paddingVertical="10dp">
+
+                    <ImageView
+                        android:tag="accent_color"
+                        android:layout_width="36dp"
+                        android:layout_height="36dp"
+                        android:layout_alignParentTop="true"
+                        android:layout_alignParentEnd="true"
+                        android:layout_marginEnd="16dp"
+                        android:background="@drawable/button_background"
+                        android:src="@android:drawable/ic_menu_preferences"
+                        app:tint="@color/text_red"
+                        android:padding="8dp"
+                        android:contentDescription="checklist item 1"
+                        android:elevation="10dp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="match_parent"
+                        android:fontFamily="@font/matrixtype_display"
+                        android:gravity="center_vertical"
+                        android:tag="primary_text"
+                        android:text="Unplug unused electronics"
+                        android:textColor="@color/white"
+                        android:textSize="14sp" />
+
+                </LinearLayout>
+
             </LinearLayout>
 
             <!-- Profile Tab Content -->
