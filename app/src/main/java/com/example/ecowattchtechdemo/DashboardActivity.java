@@ -15,6 +15,7 @@ import java.text.DecimalFormat;
 import android.widget.ImageView;
 import android.widget.Button;
 import android.widget.TextView;
+import android.content.SharedPreferences;
 
 // Willow API imports
 import com.example.ecowattchtechdemo.willow.WillowEnergyDataManager;
@@ -38,7 +39,17 @@ public class DashboardActivity extends AppCompatActivity {
     private String[] dormNames = {"TINSLEY", "GABALDON", "SECHRIST"};
     private String[] dormPositions = {"1ST PLACE", "2ND PLACE", "3RD PLACE"};
     private int currentDormIndex = 0;
-    ImageView logoutButton;
+    ImageView hamburgerButton;
+
+    // Modal components
+    private LinearLayout modalOverlay;
+    private ImageView tabAlerts, tabNotifications, tabSettings, tabProfile;
+    private LinearLayout tabContentAlerts, tabContentNotifications, tabContentSettings, tabContentProfile;
+    private boolean isModalOpen = false;
+
+    // Profile components
+    private TextView profileUsername, profileDorm;
+    private Button profileLogoutButton;
     
     // Willow API integration
     private WillowEnergyDataManager energyDataManager;
@@ -65,6 +76,7 @@ public class DashboardActivity extends AppCompatActivity {
 
         initializeComponents();
         setupNavigationButtons();
+        setupModalComponents();
         setupFragment(savedInstanceState);
         startLiveDataUpdates();
 
@@ -172,7 +184,7 @@ public class DashboardActivity extends AppCompatActivity {
     private void setupNavigationButtons() {
         records = findViewById(R.id.records_button);
         shop = findViewById(R.id.shop_button);
-        logoutButton = findViewById(R.id.logout_button);
+        hamburgerButton = findViewById(R.id.hamburger_button);
 
         records.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -189,9 +201,17 @@ public class DashboardActivity extends AppCompatActivity {
                 startActivity(intent);
             }
         });
-        
+
+        // Hamburger button toggles utility modal
+        hamburgerButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                toggleModal();
+            }
+        });
+
         // Add long press listener to access Willow API test interface
-        logoutButton.setOnLongClickListener(new View.OnLongClickListener() {
+        hamburgerButton.setOnLongClickListener(new View.OnLongClickListener() {
             @Override
             public boolean onLongClick(View v) {
                 Intent intent = new Intent(DashboardActivity.this, WillowApiV3TestActivity.class);
@@ -200,21 +220,173 @@ public class DashboardActivity extends AppCompatActivity {
             }
         });
     }
-    
-    private void setupFragment(Bundle savedInstanceState) {
 
-        // Logout button click listener - returns to login screen
-        logoutButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                // Navigate back to LoginSignupActivity and clear the activity stack
-                Intent intent = new Intent(DashboardActivity.this, LoginSignupActivity.class);
-                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-                startActivity(intent);
-                finish();
+    /**
+     * Initialize modal components and set up tab listeners
+     */
+    private void setupModalComponents() {
+        // Initialize modal overlay
+        modalOverlay = findViewById(R.id.modal_overlay);
+
+        // Initialize tab buttons
+        tabAlerts = findViewById(R.id.tab_alerts);
+        tabNotifications = findViewById(R.id.tab_notifications);
+        tabSettings = findViewById(R.id.tab_settings);
+        tabProfile = findViewById(R.id.tab_profile);
+
+        // Initialize tab content containers
+        tabContentAlerts = findViewById(R.id.tab_content_alerts);
+        tabContentNotifications = findViewById(R.id.tab_content_notifications);
+        tabContentSettings = findViewById(R.id.tab_content_settings);
+        tabContentProfile = findViewById(R.id.tab_content_profile);
+
+        // Initialize profile components
+        profileUsername = findViewById(R.id.profile_username);
+        profileDorm = findViewById(R.id.profile_dorm);
+        profileLogoutButton = findViewById(R.id.profile_logout_button);
+
+        // Populate profile information
+        loadUserProfile();
+
+        // Set up profile logout button
+        profileLogoutButton.setOnClickListener(v -> logout());
+
+        // Set up tab click listeners
+        tabAlerts.setOnClickListener(v -> switchTab(0));
+        tabNotifications.setOnClickListener(v -> switchTab(1));
+        tabSettings.setOnClickListener(v -> switchTab(2));
+        tabProfile.setOnClickListener(v -> switchTab(3));
+
+        // Set up overlay click listener to close modal when clicking outside
+        modalOverlay.setOnClickListener(v -> {
+            // Only close if clicking directly on overlay (not on modal content)
+            if (v.getId() == R.id.modal_overlay) {
+                hideModal();
             }
         });
+    }
 
+    /**
+     * Toggle modal visibility
+     */
+    private void toggleModal() {
+        if (isModalOpen) {
+            hideModal();
+        } else {
+            showModal();
+        }
+    }
+
+    /**
+     * Show the utility modal
+     */
+    private void showModal() {
+        isModalOpen = true;
+        modalOverlay.setVisibility(View.VISIBLE);
+
+        // Change hamburger icon to close icon
+        hamburgerButton.setImageResource(R.drawable.ic_close_vertical);
+
+        // Show first tab by default
+        switchTab(0);
+
+        Log.d(TAG, "Modal opened");
+    }
+
+    /**
+     * Hide the utility modal
+     */
+    private void hideModal() {
+        isModalOpen = false;
+        modalOverlay.setVisibility(View.GONE);
+
+        // Change close icon back to hamburger icon
+        hamburgerButton.setImageResource(R.drawable.ic_hamburger);
+
+        Log.d(TAG, "Modal closed");
+    }
+
+    /**
+     * Switch between modal tabs
+     * @param tabIndex 0=Alerts, 1=Notifications, 2=Settings, 3=Profile
+     */
+    private void switchTab(int tabIndex) {
+        // Hide all tab contents
+        tabContentAlerts.setVisibility(View.GONE);
+        tabContentNotifications.setVisibility(View.GONE);
+        tabContentSettings.setVisibility(View.GONE);
+        tabContentProfile.setVisibility(View.GONE);
+
+        // Reset all tab icons to white (inactive)
+        tabAlerts.setColorFilter(getResources().getColor(R.color.white, null));
+        tabNotifications.setColorFilter(getResources().getColor(R.color.white, null));
+        tabSettings.setColorFilter(getResources().getColor(R.color.white, null));
+        tabProfile.setColorFilter(getResources().getColor(R.color.white, null));
+
+        // Show selected tab and highlight its icon in red
+        switch (tabIndex) {
+            case 0: // Alerts
+                tabContentAlerts.setVisibility(View.VISIBLE);
+                tabAlerts.setColorFilter(getResources().getColor(R.color.text_red, null));
+                Log.d(TAG, "Switched to Alerts tab");
+                break;
+            case 1: // Notifications
+                tabContentNotifications.setVisibility(View.VISIBLE);
+                tabNotifications.setColorFilter(getResources().getColor(R.color.text_red, null));
+                Log.d(TAG, "Switched to Notifications tab");
+                break;
+            case 2: // Settings
+                tabContentSettings.setVisibility(View.VISIBLE);
+                tabSettings.setColorFilter(getResources().getColor(R.color.text_red, null));
+                Log.d(TAG, "Switched to Settings tab");
+                break;
+            case 3: // Profile
+                tabContentProfile.setVisibility(View.VISIBLE);
+                tabProfile.setColorFilter(getResources().getColor(R.color.text_red, null));
+                Log.d(TAG, "Switched to Profile tab");
+                break;
+        }
+    }
+
+    /**
+     * Load user profile information from SharedPreferences or Intent
+     */
+    private void loadUserProfile() {
+        // Get user info from SharedPreferences (saved by LoginFragment/SignupFragment)
+        SharedPreferences prefs = getSharedPreferences("MyAppPrefs", MODE_PRIVATE);
+        String username = prefs.getString("Username", "Guest");
+        String dorm = prefs.getString("Dormitory", "Not Selected");
+
+        // Update the profile UI
+        profileUsername.setText(username);
+        profileDorm.setText(dorm);
+
+        Log.d(TAG, "Profile loaded - Username: " + username + ", Dorm: " + dorm);
+    }
+
+    /**
+     * Logout the user and return to login screen
+     */
+    private void logout() {
+        Log.d(TAG, "User logging out");
+
+        // Clear saved user data
+        SharedPreferences prefs = getSharedPreferences("MyAppPrefs", MODE_PRIVATE);
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.clear();
+        editor.apply();
+
+        // Close modal before navigating away
+        hideModal();
+
+        // Navigate back to LoginSignupActivity and clear the activity stack
+        Intent intent = new Intent(DashboardActivity.this, LoginSignupActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+        finish();
+    }
+
+    private void setupFragment(Bundle savedInstanceState) {
         // Only add the fragment if it's not already added
         if (savedInstanceState == null) {
             dashContentFragment = new DashContentFragment();

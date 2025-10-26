@@ -19,22 +19,6 @@
         android:background="@drawable/gradient_circle_extended"
         tools:rotation="180" />
 
-    <!-- Logout Button (Top Right) -->
-    <ImageView
-        android:id="@+id/logout_button"
-        android:tag="accent_color"
-        android:layout_width="48dp"
-        android:layout_height="48dp"
-        android:layout_alignParentTop="true"
-        android:layout_alignParentEnd="true"
-        android:layout_marginTop="80dp"
-        android:layout_marginEnd="16dp"
-        android:background="@drawable/button_background"
-        android:src="@android:drawable/ic_lock_power_off"
-        app:tint="@color/text_red"
-        android:padding="12dp"
-        android:contentDescription="Logout" />
-
     <!-- Main Content Area -->
     <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
         android:id="@+id/dash_content_fragment_container"
@@ -260,7 +244,7 @@
                 android:layout_width="40dp"
                 android:layout_height="40dp"
                 android:background="@drawable/button_background"
-                android:src="@android:drawable/ic_menu_preferences"
+                android:src="@android:drawable/ic_menu_myplaces"
                 app:tint="@color/white"
                 android:padding="8dp" />
 
@@ -379,26 +363,106 @@
                     android:tag="accent_text"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="16dp"
+                    android:layout_marginBottom="24dp"
                     android:text="PROFILE"
                     android:textColor="@color/text_red"
                     android:textSize="18sp"
                     android:textStyle="bold"
                     android:fontFamily="@font/matrixtype_display" />
 
-                <TextView
-                    android:tag="primary_text"
+                <!-- Username Display -->
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="View and edit your profile information and energy goals."
+                    android:orientation="vertical"
+                    android:layout_marginBottom="16dp">
+
+                    <TextView
+                        android:tag="secondary_text"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Username"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="12sp"
+                        android:fontFamily="@font/matrixtype_display"
+                        android:layout_marginBottom="4dp" />
+
+                    <TextView
+                        android:id="@+id/profile_username"
+                        android:tag="primary_text"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Guest"
+                        android:textColor="@color/white"
+                        android:textSize="16sp"
+                        android:fontFamily="@font/matrixtype_display" />
+
+                </LinearLayout>
+
+                <!-- Dorm Display -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_marginBottom="24dp">
+
+                    <TextView
+                        android:tag="secondary_text"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Dormitory"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="12sp"
+                        android:fontFamily="@font/matrixtype_display"
+                        android:layout_marginBottom="4dp" />
+
+                    <TextView
+                        android:id="@+id/profile_dorm"
+                        android:tag="primary_text"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Not Selected"
+                        android:textColor="@color/white"
+                        android:textSize="16sp"
+                        android:fontFamily="@font/matrixtype_display" />
+
+                </LinearLayout>
+
+                <!-- Logout Button -->
+                <Button
+                    android:id="@+id/profile_logout_button"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Logout"
                     android:textColor="@color/white"
-                    android:textSize="14sp"
-                    android:fontFamily="@font/matrixtype_display" />
+                    android:background="@drawable/main_button_background"
+                    android:fontFamily="@font/matrixtype_display"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:paddingVertical="12dp"
+                    android:layout_marginTop="8dp" />
 
             </LinearLayout>
 
         </LinearLayout>
 
     </LinearLayout>
+
+    <!-- Hamburger Menu Button (Top Right) - Placed last to appear above modal -->
+    <ImageView
+        android:id="@+id/hamburger_button"
+        android:tag="accent_color"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentEnd="true"
+        android:layout_marginTop="80dp"
+        android:layout_marginEnd="16dp"
+        android:background="@drawable/button_background"
+        android:src="@drawable/ic_hamburger"
+        app:tint="@color/text_red"
+        android:padding="12dp"
+        android:contentDescription="Menu"
+        android:elevation="10dp" />
 
 </RelativeLayout>
