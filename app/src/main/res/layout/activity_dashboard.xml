@@ -447,6 +447,17 @@
 
                 </LinearLayout>
 
+                <TextView
+                    android:id="@+id/tasks_completed"
+                    android:tag="accent_text"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:fontFamily="@font/matrixtype_display"
+                    android:text="All tasks completed! You've earned your daily points."
+                    android:textColor="@color/text_red"
+                    android:textSize="14sp"
+                    android:visibility="gone" />
+
             </LinearLayout>
 
             <!-- Profile Tab Content -->

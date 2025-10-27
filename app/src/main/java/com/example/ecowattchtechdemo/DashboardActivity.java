@@ -496,6 +496,9 @@ public class DashboardActivity extends AppCompatActivity {
         Boolean task3 = prefs.getBoolean("checklist_item_3", false);
 
         if (task1 && task2 && task3) {
+            TextView tasksCompleted = findViewById(R.id.tasks_completed);
+            tasksCompleted.setVisibility(View.VISIBLE);
+
             // backend - add user points
         }
     }
