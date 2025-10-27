@@ -45,6 +45,7 @@ public class DashboardActivity extends AppCompatActivity {
     private LinearLayout modalOverlay;
     private ImageView tabAlerts, tabNotifications, tabSettings, tabProfile;
     private LinearLayout tabContentAlerts, tabContentNotifications, tabContentSettings, tabContentProfile;
+    private LinearLayout checklistItem1, checklistItem2, checklistItem3;
     private boolean isModalOpen = false;
 
     // Profile components
@@ -252,6 +253,11 @@ public class DashboardActivity extends AppCompatActivity {
         // Initialize daily tips component
         dailyTipText = findViewById(R.id.daily_tip_text);
 
+        // Initialize daily checklist items
+        checklistItem1 = findViewById(R.id.checklist_item_1);
+        checklistItem2 = findViewById(R.id.checklist_item_2);
+        checklistItem3 = findViewById(R.id.checklist_item_3);
+
         // Load environmental tips
         initializeEnvironmentalTips();
 
@@ -266,6 +272,10 @@ public class DashboardActivity extends AppCompatActivity {
         tabNotifications.setOnClickListener(v -> switchTab(1));
         tabSettings.setOnClickListener(v -> switchTab(2));
         tabProfile.setOnClickListener(v -> switchTab(3));
+
+        // Set up checklist click listeners
+        checklistItem1.setOnClickListener(v ->
+                markItemComplete("checklist_item_1"));
 
         // Set up overlay click listener to close modal when clicking outside
         modalOverlay.setOnClickListener(v -> {
@@ -395,6 +405,39 @@ public class DashboardActivity extends AppCompatActivity {
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
         finish();
+    }
+
+    /**
+     * Mark checklist item as complete when checked
+     */
+    private void markItemComplete(String checklistItem) {
+        SharedPreferences prefs = getSharedPreferences("DailyTasks", MODE_PRIVATE);
+        Boolean taskComplete = prefs.getBoolean(checklistItem, false);
+
+        if (!taskComplete) {
+            // mark as complete in prefs
+            SharedPreferences.Editor editor = prefs.edit();
+            editor.putBoolean(checklistItem, true);
+            editor.apply();
+
+            // mark as complete on screen (change icon/color) 
+
+            // check for all tasks complete
+            Boolean task1 = prefs.getBoolean("checklist_item_1", false);
+            Boolean task2 = prefs.getBoolean("checklist_item_2", false);
+            Boolean task3 = prefs.getBoolean("checklist_item_3", false);
+
+            if (task1 && task2 && task3) {
+                addChecklistPoints();
+            }
+        }
+    }
+
+    /**
+     * Add user points when all three checklist items are completed
+     */
+    private void addChecklistPoints() {
+        // add points when user has completed all daily tasks
     }
 
     /**

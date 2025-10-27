@@ -390,7 +390,7 @@
                         android:src="@android:drawable/ic_menu_preferences"
                         app:tint="@color/text_red"
                         android:padding="8dp"
-                        android:contentDescription="checklist item 1"
+                        android:contentDescription="checklist item 2"
                         android:elevation="10dp" />
 
                     <TextView
@@ -426,7 +426,7 @@
                         android:src="@android:drawable/ic_menu_preferences"
                         app:tint="@color/text_red"
                         android:padding="8dp"
-                        android:contentDescription="checklist item 1"
+                        android:contentDescription="checklist item 3"
                         android:elevation="10dp" />
 
                     <TextView
