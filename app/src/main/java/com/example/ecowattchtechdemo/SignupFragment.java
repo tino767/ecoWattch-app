@@ -101,6 +101,14 @@ public class SignupFragment extends Fragment {
 
             Volley.newRequestQueue(requireContext()).add(request);
 
+            // TEMP: reset checklist progress on signup
+            SharedPreferences prefs = requireContext().getSharedPreferences("DailyTasks", Context.MODE_PRIVATE);
+            prefs.edit()
+                    .putBoolean("checklist_item_1", false)
+                    .putBoolean("checklist_item_2", false)
+                    .putBoolean("checklist_item_3", false)
+                    .apply();
+
             // go to dashboard
             Intent intent = new Intent(requireContext(), DashboardActivity.class);
             startActivity(intent);

@@ -344,6 +344,7 @@
                     android:paddingVertical="10dp">
 
                     <ImageView
+                        android:id="@+id/checklist_item_1_icon"
                         android:tag="accent_color"
                         android:layout_width="36dp"
                         android:layout_height="36dp"
@@ -358,11 +359,12 @@
                         android:elevation="10dp" />
 
                     <TextView
+                        android:id="@+id/checklist_item_1_text"
+                        android:tag="primary_text"
                         android:layout_width="wrap_content"
                         android:layout_height="match_parent"
                         android:fontFamily="@font/matrixtype_display"
                         android:gravity="center_vertical"
-                        android:tag="primary_text"
                         android:text="Log in to ecoWattch app"
                         android:textColor="@color/white"
                         android:textSize="14sp" />
@@ -380,6 +382,7 @@
                     android:paddingVertical="10dp">
 
                     <ImageView
+                        android:id="@+id/checklist_item_2_icon"
                         android:tag="accent_color"
                         android:layout_width="36dp"
                         android:layout_height="36dp"
@@ -394,11 +397,12 @@
                         android:elevation="10dp" />
 
                     <TextView
+                        android:id="@+id/checklist_item_2_text"
+                        android:tag="primary_text"
                         android:layout_width="wrap_content"
                         android:layout_height="match_parent"
                         android:fontFamily="@font/matrixtype_display"
                         android:gravity="center_vertical"
-                        android:tag="primary_text"
                         android:text="Turn off lights in your room"
                         android:textColor="@color/white"
                         android:textSize="14sp" />
@@ -416,6 +420,7 @@
                     android:paddingVertical="10dp">
 
                     <ImageView
+                        android:id="@+id/checklist_item_3_icon"
                         android:tag="accent_color"
                         android:layout_width="36dp"
                         android:layout_height="36dp"
@@ -430,11 +435,12 @@
                         android:elevation="10dp" />
 
                     <TextView
+                        android:id="@+id/checklist_item_3_text"
+                        android:tag="primary_text"
                         android:layout_width="wrap_content"
                         android:layout_height="match_parent"
                         android:fontFamily="@font/matrixtype_display"
                         android:gravity="center_vertical"
-                        android:tag="primary_text"
                         android:text="Unplug unused electronics"
                         android:textColor="@color/white"
                         android:textSize="14sp" />

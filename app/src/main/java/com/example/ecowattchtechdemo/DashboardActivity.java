@@ -414,10 +414,14 @@ public class DashboardActivity extends AppCompatActivity {
     private void markItemComplete(int checklistItem) {
         SharedPreferences prefs = getSharedPreferences("DailyTasks", MODE_PRIVATE);
         Boolean taskComplete;
+        ImageView taskIcon;
+        TextView taskText;
 
         switch (checklistItem) {
             case 1: // task 1
                 taskComplete = prefs.getBoolean("checklist_item_1", false);
+                taskIcon = findViewById(R.id.checklist_item_1_icon);
+                taskText = findViewById(R.id.checklist_item_1_text);
 
                 if (!taskComplete) {
                     // mark complete in prefs
@@ -426,12 +430,19 @@ public class DashboardActivity extends AppCompatActivity {
                     editor.apply();
 
                     // mark complete on screen
+                    taskIcon.setImageResource(android.R.drawable.checkbox_on_background);
+                    taskIcon.setTag("primary_color");
+                    taskText.setTag("secondary_text");
+
+                    tm.applyTheme();
 
                     checkForTasksComplete();
                 }
                 break;
             case 2: // task 2
                 taskComplete = prefs.getBoolean("checklist_item_2", false);
+                taskIcon = findViewById(R.id.checklist_item_2_icon);
+                taskText = findViewById(R.id.checklist_item_2_text);
 
                 if (!taskComplete) {
                     // mark complete in prefs
@@ -440,12 +451,19 @@ public class DashboardActivity extends AppCompatActivity {
                     editor.apply();
 
                     // mark complete on screen
+                    taskIcon.setImageResource(android.R.drawable.checkbox_on_background);
+                    taskIcon.setTag("primary_color");
+                    taskText.setTag("secondary_text");
+
+                    tm.applyTheme();
 
                     checkForTasksComplete();
                 }
                 break;
             case 3: // task 3
                 taskComplete = prefs.getBoolean("checklist_item_3", false);
+                taskIcon = findViewById(R.id.checklist_item_3_icon);
+                taskText = findViewById(R.id.checklist_item_3_text);
 
                 if (!taskComplete) {
                     // mark complete in prefs
@@ -454,11 +472,16 @@ public class DashboardActivity extends AppCompatActivity {
                     editor.apply();
 
                     // mark complete on screen
+                    taskIcon.setImageResource(android.R.drawable.checkbox_on_background);
+                    taskIcon.setTag("primary_color");
+                    taskText.setTag("secondary_text");
+
+                    tm.applyTheme();
 
                     checkForTasksComplete();
                 }
                 break;
-        }
+        } // end switch statement
     }
 
     /**
