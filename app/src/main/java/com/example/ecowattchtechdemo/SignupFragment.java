@@ -107,6 +107,7 @@ public class SignupFragment extends Fragment {
                     .putBoolean("checklist_item_1", false)
                     .putBoolean("checklist_item_2", false)
                     .putBoolean("checklist_item_3", false)
+                    .putBoolean("all_tasks", false)
                     .apply();
 
             // go to dashboard

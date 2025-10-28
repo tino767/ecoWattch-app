@@ -494,10 +494,25 @@ public class DashboardActivity extends AppCompatActivity {
         Boolean task1 = prefs.getBoolean("checklist_item_1", false);
         Boolean task2 = prefs.getBoolean("checklist_item_2", false);
         Boolean task3 = prefs.getBoolean("checklist_item_3", false);
+        Boolean allTasks = prefs.getBoolean("all_tasks", false);
+
+        // backend - get allTasks from db
 
         if (task1 && task2 && task3) {
+            allTasks = true;
+            prefs.edit()
+                    .putBoolean("all_tasks", true)
+                    .apply();
+
+            // backend - update db to say user completed all tasks for the day
+        }
+        if (allTasks) {
             TextView tasksCompleted = findViewById(R.id.tasks_completed);
             tasksCompleted.setVisibility(View.VISIBLE);
+
+            checklistItem1.setVisibility(View.INVISIBLE);
+            checklistItem2.setVisibility(View.INVISIBLE);
+            checklistItem3.setVisibility(View.INVISIBLE);
 
             // backend - add user points
         }

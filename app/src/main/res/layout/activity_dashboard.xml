@@ -341,7 +341,8 @@
                     android:orientation="horizontal"
                     android:background="@drawable/pill_background"
                     android:paddingHorizontal="10dp"
-                    android:paddingVertical="10dp">
+                    android:paddingVertical="10dp"
+                    android:visibility="visible">
 
                     <ImageView
                         android:id="@+id/checklist_item_1_icon"
@@ -379,7 +380,8 @@
                     android:orientation="horizontal"
                     android:background="@drawable/pill_background"
                     android:paddingHorizontal="10dp"
-                    android:paddingVertical="10dp">
+                    android:paddingVertical="10dp"
+                    android:visibility="visible">
 
                     <ImageView
                         android:id="@+id/checklist_item_2_icon"
@@ -417,7 +419,8 @@
                     android:orientation="horizontal"
                     android:background="@drawable/pill_background"
                     android:paddingHorizontal="10dp"
-                    android:paddingVertical="10dp">
+                    android:paddingVertical="10dp"
+                    android:visibility="visible">
 
                     <ImageView
                         android:id="@+id/checklist_item_3_icon"
