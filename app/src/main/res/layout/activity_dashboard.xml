@@ -4,12 +4,10 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:tag="background_main"
     android:background="@color/background_dark">
 
     <!-- Gradient Background Circle -->
     <View
-        android:tag="circle_gradient"
         android:layout_width="600dp"
         android:layout_height="500dp"
         android:layout_alignParentBottom="true"
@@ -22,7 +20,6 @@
     <!-- Logout Button (Top Right) -->
     <ImageView
         android:id="@+id/logout_button"
-        android:tag="accent_color"
         android:layout_width="48dp"
         android:layout_height="48dp"
         android:layout_alignParentTop="true"
@@ -71,7 +68,6 @@
         <!-- Threshold Triangle -->
         <ImageView
             android:id="@+id/threshold_indicator"
-            android:tag="primary_color"
             android:layout_width="16dp"
             android:layout_height="16dp"
             android:layout_centerVertical="true"
@@ -115,7 +111,6 @@
                 android:orientation="horizontal">
 
                 <ImageView
-                    android:tag="primary_color"
                     android:layout_width="20dp"
                     android:layout_height="20dp"
                     android:layout_marginEnd="8dp"
@@ -123,7 +118,6 @@
                     app:tint="@color/white" />
 
                 <TextView
-                    android:tag="primary_text"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:fontFamily="@font/matrixtype_display"
@@ -135,7 +129,6 @@
             </LinearLayout>
 
             <TextView
-                android:tag="primary_text"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:background="@drawable/pill_background"
@@ -169,7 +162,6 @@
                 android:orientation="horizontal">
 
                 <ImageView
-                    android:tag="primary_color"
                     android:layout_width="20dp"
                     android:layout_height="20dp"
                     android:layout_marginEnd="8dp"
@@ -177,7 +169,6 @@
                     app:tint="@color/white" />
 
                 <TextView
-                    android:tag="primary_text"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:fontFamily="@font/matrixtype_display"
@@ -188,17 +179,17 @@
 
             </LinearLayout>
 
-                <TextView
-                    android:tag="primary_text"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:background="@drawable/pill_background"
-                    android:fontFamily="@font/matrixtype_display"
-                    android:paddingHorizontal="12dp"
-                    android:paddingVertical="4dp"
-                    android:text="Energy Shop"
-                    android:textColor="@color/white"
-                    android:textSize="12sp" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/pill_background"
+                android:fontFamily="@font/matrixtype_display"
+                android:paddingHorizontal="12dp"
+                android:paddingVertical="4dp"
+                android:text="5460 energy"
+                android:textColor="@color/white"
+                android:textSize="12sp" />
+
         </LinearLayout>
 
     </LinearLayout>
@@ -223,7 +214,6 @@
 
             <ImageView
                 android:id="@+id/tab_alerts"
-                android:tag="accent_color"
                 android:layout_width="40dp"
                 android:layout_height="40dp"
                 android:layout_marginEnd="16dp"
@@ -234,7 +224,6 @@
 
             <ImageView
                 android:id="@+id/tab_notifications"
-                android:tag="primary_color"
                 android:layout_width="40dp"
                 android:layout_height="40dp"
                 android:layout_marginEnd="16dp"
@@ -245,7 +234,6 @@
 
             <ImageView
                 android:id="@+id/tab_settings"
-                android:tag="primary_color"
                 android:layout_width="40dp"
                 android:layout_height="40dp"
                 android:layout_marginEnd="16dp"
@@ -256,7 +244,6 @@
 
             <ImageView
                 android:id="@+id/tab_profile"
-                android:tag="primary_color"
                 android:layout_width="40dp"
                 android:layout_height="40dp"
                 android:background="@drawable/button_background"
@@ -286,7 +273,6 @@
                 android:visibility="visible">
 
                 <TextView
-                    android:tag="accent_text"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="16dp"
@@ -297,7 +283,6 @@
                     android:fontFamily="@font/matrixtype_display" />
 
                 <TextView
-                    android:tag="primary_text"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
@@ -316,7 +301,6 @@
                 android:visibility="gone">
 
                 <TextView
-                    android:tag="accent_text"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="16dp"
@@ -327,7 +311,6 @@
                     android:fontFamily="@font/matrixtype_display" />
 
                 <TextView
-                    android:tag="primary_text"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="You have 3 new notifications. Check your energy usage alerts and leaderboard updates."
@@ -346,7 +329,6 @@
                 android:visibility="gone">
 
                 <TextView
-                    android:tag="accent_text"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="16dp"
@@ -357,7 +339,6 @@
                     android:fontFamily="@font/matrixtype_display" />
 
                 <TextView
-                    android:tag="primary_text"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="Configure your energy monitoring preferences and app settings."
@@ -376,7 +357,6 @@
                 android:visibility="gone">
 
                 <TextView
-                    android:tag="accent_text"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="16dp"
@@ -387,7 +367,6 @@
                     android:fontFamily="@font/matrixtype_display" />
 
                 <TextView
-                    android:tag="primary_text"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="View and edit your profile information and energy goals."
