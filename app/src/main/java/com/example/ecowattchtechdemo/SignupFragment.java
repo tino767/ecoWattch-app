@@ -1,9 +1,12 @@
 package com.example.ecowattchtechdemo;
 
+import android.app.AlarmManager;
+import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -24,6 +27,8 @@ import com.google.android.material.textfield.TextInputEditText;
 
 import org.json.JSONException;
 import org.json.JSONObject;
+
+import java.util.Calendar;
 
 public class SignupFragment extends Fragment {
     Button signupButton;
@@ -110,6 +115,8 @@ public class SignupFragment extends Fragment {
                     .putBoolean("all_tasks", false)
                     .apply();
 
+            scheduleDailyReset();
+
             // go to dashboard
             Intent intent = new Intent(requireContext(), DashboardActivity.class);
             startActivity(intent);
@@ -125,4 +132,38 @@ public class SignupFragment extends Fragment {
 
         return view;
     }
+
+    private void scheduleDailyReset() {
+        Context context = requireContext();
+        AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+        Intent intent = new Intent(context, DailyResetReceiver.class);
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(
+                context,
+                0,
+                intent,
+                PendingIntent.FLAG_IMMUTABLE
+        );
+
+        // Set time to 10:00 PM
+        Calendar calendar = Calendar.getInstance();
+        calendar.set(Calendar.HOUR_OF_DAY, 22);
+        calendar.set(Calendar.MINUTE, 0);
+        calendar.set(Calendar.SECOND, 0);
+
+        // If it's already past 10PM, schedule for tomorrow
+        if (calendar.getTimeInMillis() < System.currentTimeMillis()) {
+            calendar.add(Calendar.DAY_OF_MONTH, 1);
+        }
+
+        // Schedule the repeating alarm
+        alarmManager.setRepeating(
+                AlarmManager.RTC_WAKEUP,
+                calendar.getTimeInMillis(),
+                AlarmManager.INTERVAL_DAY,
+                pendingIntent
+        );
+
+        Log.d("DailyReset", "Reset alarm scheduled for 10PM daily");
+    }
+
 }
