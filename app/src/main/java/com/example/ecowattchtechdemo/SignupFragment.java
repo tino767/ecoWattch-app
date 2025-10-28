@@ -166,7 +166,7 @@ public class SignupFragment extends Fragment {
                 dailyResetWork
         );
 
-        Log.d("DailyReset", "✅ WorkManager scheduled daily reset at 10 PM");
+        Log.d("DailyReset", "WorkManager scheduled daily reset at 10 PM");
     }
 
 
