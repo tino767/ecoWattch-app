@@ -33,12 +33,14 @@ public class ShopActivity extends AppCompatActivity {
     private ThemeManager tm;
 
     // TEST PALETTE VALUES
+    // Format: [primary, secondary, accent, background_main, background_light, gradient_start, gradient_end]
+    // Indices 5 & 6 are the gradient colors that match the big UI circle gradients
     private final Map<String, String[]> paletteColors = new HashMap<String, String[]>() {{
-        put("PEACH", new String[]{"#FFFFFF", "#AAAAAA", "#CD232E", "#1B1B1B", "#262626"});
-        put("BLUE", new String[]{"#060606", "#1B1B1B", "#1956DB", "#BCBCBC", "#7D7D7D"});
-        put("GREEN", new String[]{"#FFFFFF", "#AAAAAA", "#19BD53", "#38916A", "#262626"});
-        put("MAGENTA", new String[]{"#0F0F0F", "#AAAAAA", "#D719DB", "#EFEFEF", "#707070"});
-        put("CYAN", new String[]{"#FFFFFF", "#AAAAAA", "#19DBD1", "#313131", "#262626"});
+        put("PEACH", new String[]{"#FFFFFF", "#AAAAAA", "#CD232E", "#1B1B1B", "#262626", "#FFFFFF", "#CD232E"});
+        put("BLUE", new String[]{"#060606", "#1B1B1B", "#1956DB", "#BCBCBC", "#7D7D7D", "#A5C9FF", "#1956DB"});
+        put("GREEN", new String[]{"#FFFFFF", "#AAAAAA", "#19BD53", "#38916A", "#262626", "#C8F5D8", "#19BD53"});
+        put("MAGENTA", new String[]{"#0F0F0F", "#AAAAAA", "#D719DB", "#EFEFEF", "#707070", "#F5C8F5", "#D719DB"});
+        put("CYAN", new String[]{"#FFFFFF", "#AAAAAA", "#19DBD1", "#313131", "#262626", "#C8F5F0", "#19DBD1"});
     }};
 
     @Override
@@ -97,21 +99,34 @@ public class ShopActivity extends AppCompatActivity {
     }
 
     private void initializeSampleData() {
-        // Sample palette data - AND HERE
+        // Sample palette data - BACKEND: Replace with API calls
+        // Using programmatic gradients - matches the big UI circle gradients
         palletsList = new ArrayList<>();
-        palletsList.add(new ShopItem("PEACH", 400, R.drawable.gradient_circle_extended));
-        palletsList.add(new ShopItem("BLUE", 500, R.drawable.gradient_circle_extended));
-        palletsList.add(new ShopItem("GREEN", 600, R.drawable.gradient_circle_extended));
-        palletsList.add(new ShopItem("MAGENTA", 450, R.drawable.gradient_circle_extended));
-        palletsList.add(new ShopItem("CYAN", 550, R.drawable.gradient_circle_extended));
+
+        // Gradient circle uses indices 5 (light) and 6 (dark) to match the UI background circles
+        String[] peachColors = paletteColors.get("PEACH");
+        palletsList.add(new ShopItem("PEACH", 400, peachColors[5], peachColors[6]));
+
+        String[] blueColors = paletteColors.get("BLUE");
+        palletsList.add(new ShopItem("BLUE", 500, blueColors[5], blueColors[6]));
+
+        String[] greenColors = paletteColors.get("GREEN");
+        palletsList.add(new ShopItem("GREEN", 600, greenColors[5], greenColors[6]));
+
+        String[] magentaColors = paletteColors.get("MAGENTA");
+        palletsList.add(new ShopItem("MAGENTA", 450, magentaColors[5], magentaColors[6]));
+
+        String[] cyanColors = paletteColors.get("CYAN");
+        palletsList.add(new ShopItem("CYAN", 550, cyanColors[5], cyanColors[6]));
+
         palletsList.get(0).setOwned(true);
         palletsList.get(1).setOwned(true);
 
         // Sample owned items - backend will replace with user's owned items
         ownedList = new ArrayList<>();
-        ownedList.add(new ShopItem("PEACH", 400, R.drawable.gradient_circle_extended));
+        ownedList.add(new ShopItem("PEACH", 400, peachColors[5], peachColors[6]));
         ownedList.get(0).setOwned(true);
-        ownedList.add(new ShopItem("BLUE", 500, R.drawable.gradient_circle_extended));
+        ownedList.add(new ShopItem("BLUE", 500, blueColors[5], blueColors[6]));
         ownedList.get(1).setOwned(true);
     }
 

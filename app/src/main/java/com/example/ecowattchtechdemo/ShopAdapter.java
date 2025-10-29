@@ -1,5 +1,7 @@
 package com.example.ecowattchtechdemo;
 
+import android.graphics.Color;
+import android.graphics.drawable.GradientDrawable;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -64,8 +66,20 @@ public class ShopAdapter extends RecyclerView.Adapter<ShopAdapter.ShopViewHolder
             itemName.setText(item.getName());
             itemPrice.setText(item.getPriceText());
 
-            // Set the color preview background
-            if (item.getColorResource() != 0) {
+            // Set the color preview background - programmatically create gradient
+            if (item.hasGradientColors()) {
+                // Create gradient drawable programmatically
+                GradientDrawable gradientDrawable = new GradientDrawable(
+                    GradientDrawable.Orientation.TL_BR, // Top-left to bottom-right (135 degrees)
+                    new int[]{
+                        Color.parseColor(item.getGradientStartColor()),
+                        Color.parseColor(item.getGradientEndColor())
+                    }
+                );
+                gradientDrawable.setShape(GradientDrawable.OVAL);
+                itemColorPreview.setBackground(gradientDrawable);
+            } else if (item.getColorResource() != 0) {
+                // Fallback to resource-based background for backwards compatibility
                 itemColorPreview.setBackgroundResource(item.getColorResource());
             }
 
