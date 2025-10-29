@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -16,6 +17,9 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.work.ExistingPeriodicWorkPolicy;
+import androidx.work.PeriodicWorkRequest;
+import androidx.work.WorkManager;
 
 import com.android.volley.Request;
 import com.android.volley.toolbox.JsonObjectRequest;
@@ -24,6 +28,9 @@ import com.google.android.material.textfield.TextInputEditText;
 
 import org.json.JSONException;
 import org.json.JSONObject;
+
+import java.util.Calendar;
+import java.util.concurrent.TimeUnit;
 
 public class SignupFragment extends Fragment {
     Button signupButton;
@@ -101,6 +108,17 @@ public class SignupFragment extends Fragment {
 
             Volley.newRequestQueue(requireContext()).add(request);
 
+            // TEMP: reset checklist progress on signup
+            SharedPreferences prefs = requireContext().getSharedPreferences("DailyTasks", Context.MODE_PRIVATE);
+            prefs.edit()
+                    .putBoolean("checklist_item_1", false)
+                    .putBoolean("checklist_item_2", false)
+                    .putBoolean("checklist_item_3", false)
+                    .putBoolean("all_tasks", false)
+                    .apply();
+
+            scheduleDailyReset();
+
             // go to dashboard
             Intent intent = new Intent(requireContext(), DashboardActivity.class);
             startActivity(intent);
@@ -116,4 +134,40 @@ public class SignupFragment extends Fragment {
 
         return view;
     }
+
+    private void scheduleDailyReset() {
+        Context context = requireContext(); // Safe inside Fragment
+
+        // Calculate delay until next 10 PM
+        Calendar now = Calendar.getInstance();
+        Calendar next10PM = Calendar.getInstance();
+        next10PM.set(Calendar.HOUR_OF_DAY, 22); // 10 PM
+        next10PM.set(Calendar.MINUTE, 0);
+        next10PM.set(Calendar.SECOND, 0);
+        next10PM.set(Calendar.MILLISECOND, 0);
+
+        // If it's already past 10 PM today, schedule for tomorrow
+        if (next10PM.before(now)) {
+            next10PM.add(Calendar.DAY_OF_MONTH, 1);
+        }
+
+        long initialDelay = next10PM.getTimeInMillis() - now.getTimeInMillis();
+
+        // Create a periodic WorkRequest for every 24 hours
+        PeriodicWorkRequest dailyResetWork =
+                new PeriodicWorkRequest.Builder(ResetWorker.class, 24, TimeUnit.HOURS)
+                        .setInitialDelay(initialDelay, TimeUnit.MILLISECONDS)
+                        .addTag("daily_reset_work")
+                        .build();
+
+        WorkManager.getInstance(context).enqueueUniquePeriodicWork(
+                "DailyResetWork", // unique name so it won't duplicate
+                ExistingPeriodicWorkPolicy.UPDATE, // replace any existing schedule
+                dailyResetWork
+        );
+
+        Log.d("DailyReset", "WorkManager scheduled daily reset at 10 PM");
+    }
+
+
 }
