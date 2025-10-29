@@ -191,11 +191,16 @@ public class DashboardActivity extends AppCompatActivity {
         shop = findViewById(R.id.shop_button);
         hamburgerButton = findViewById(R.id.hamburger_button);
 
+        // Disable Records button (Coming Soon)
+        records.setEnabled(false);
+        records.setAlpha(0.5f); // Visual indicator that it's disabled
+
         records.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Intent intent = new Intent(DashboardActivity.this, RecordsActivity.class);
-                startActivity(intent);
+                // Disabled - Coming Soon
+                // Intent intent = new Intent(DashboardActivity.this, RecordsActivity.class);
+                // startActivity(intent);
             }
         });
 
