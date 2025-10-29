@@ -50,7 +50,7 @@ public class DashboardActivity extends AppCompatActivity {
 
     // Profile components
     private TextView profileUsername, profileDorm;
-    private Button profileLogoutButton;
+    private TextView profileLogoutButton;
 
     // Daily Tips component
     private TextView dailyTipText;

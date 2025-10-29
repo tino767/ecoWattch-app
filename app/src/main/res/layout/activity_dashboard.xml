@@ -535,8 +535,9 @@
                 </LinearLayout>
 
                 <!-- Logout Button -->
-                <Button
+                <TextView
                     android:id="@+id/profile_logout_button"
+                    android:tag="primary_text"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="Logout"
@@ -546,6 +547,7 @@
                     android:textSize="16sp"
                     android:textStyle="bold"
                     android:paddingVertical="12dp"
+                    android:gravity="center"
                     android:layout_marginTop="8dp" />
 
             </LinearLayout>
