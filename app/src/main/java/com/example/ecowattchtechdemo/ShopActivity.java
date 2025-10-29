@@ -4,11 +4,11 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.Typeface;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-import android.widget.Button;
 import android.widget.TextView;
 import android.view.View;
 import java.util.ArrayList;
@@ -17,7 +17,7 @@ import java.util.List;
 import java.util.Map;
 
 public class ShopActivity extends AppCompatActivity {
-    Button backButton;
+    TextView backButton;
     TextView tabPallets, tabOwned, tabMore;
     RecyclerView palletsRecycler, ownedRecycler;
 
@@ -234,12 +234,16 @@ public class ShopActivity extends AppCompatActivity {
     }
 
     private void switchToTab(TextView selectedTab) {
-        // Reset all tabs to normal style
-        tabPallets.setTypeface(null, Typeface.NORMAL);
-        tabOwned.setTypeface(null, Typeface.NORMAL);
-        tabMore.setTypeface(null, Typeface.NORMAL);
+        // Get the custom font
+        Typeface matrixFont = getResources().getFont(R.font.matrixtype_display);
 
-        // Set selected tab to bold
-        selectedTab.setTypeface(null, Typeface.BOLD);
+        // Reset all tabs to normal style (preserving custom font)
+        tabPallets.setTypeface(matrixFont, Typeface.NORMAL);
+        tabOwned.setTypeface(matrixFont, Typeface.NORMAL);
+        tabMore.setTypeface(matrixFont, Typeface.NORMAL);
+
+        // Set selected tab to bold (preserving custom font)
+        selectedTab.setTypeface(matrixFont, Typeface.BOLD);
     }
+
 }
