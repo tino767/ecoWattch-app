@@ -434,9 +434,9 @@ public class DashboardActivity extends AppCompatActivity {
                     editor.putBoolean("checklist_item_1", true);
                     editor.apply();
 
-                    // mark complete on screen
-                    taskIcon.setImageResource(android.R.drawable.checkbox_on_background);
-                    taskIcon.setTag("primary_color");
+                    // mark complete on screen - show checkmark
+                    taskIcon.setImageResource(R.drawable.ic_checkmark);
+                    taskIcon.setTag("accent_color");
                     taskText.setTag("secondary_text");
 
                     tm.applyTheme();
@@ -455,9 +455,9 @@ public class DashboardActivity extends AppCompatActivity {
                     editor.putBoolean("checklist_item_2", true);
                     editor.apply();
 
-                    // mark complete on screen
-                    taskIcon.setImageResource(android.R.drawable.checkbox_on_background);
-                    taskIcon.setTag("primary_color");
+                    // mark complete on screen - show checkmark
+                    taskIcon.setImageResource(R.drawable.ic_checkmark);
+                    taskIcon.setTag("accent_color");
                     taskText.setTag("secondary_text");
 
                     tm.applyTheme();
@@ -476,9 +476,9 @@ public class DashboardActivity extends AppCompatActivity {
                     editor.putBoolean("checklist_item_3", true);
                     editor.apply();
 
-                    // mark complete on screen
-                    taskIcon.setImageResource(android.R.drawable.checkbox_on_background);
-                    taskIcon.setTag("primary_color");
+                    // mark complete on screen - show checkmark
+                    taskIcon.setImageResource(R.drawable.ic_checkmark);
+                    taskIcon.setTag("accent_color");
                     taskText.setTag("secondary_text");
 
                     tm.applyTheme();

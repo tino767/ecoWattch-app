@@ -64,7 +64,13 @@ public class ShopAdapter extends RecyclerView.Adapter<ShopAdapter.ShopViewHolder
 
         public void bind(ShopItem item, int position) {
             itemName.setText(item.getName());
-            itemPrice.setText(item.getPriceText());
+
+            // Show "Owned" for owned items, otherwise show price
+            if (item.isOwned()) {
+                itemPrice.setText("Owned");
+            } else {
+                itemPrice.setText(item.getPriceText());
+            }
 
             // Set the color preview background - programmatically create gradient
             if (item.hasGradientColors()) {

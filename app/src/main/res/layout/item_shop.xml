@@ -54,8 +54,7 @@
             android:layout_width="48dp"
             android:layout_height="48dp"
             android:layout_gravity="center"
-            android:src="@android:drawable/checkbox_on_background"
-            app:tint="@color/white"
+            android:src="@drawable/ic_checkmark"
             android:visibility="gone" />
 
     </FrameLayout>

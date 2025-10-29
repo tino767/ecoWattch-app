@@ -352,9 +352,7 @@
                         android:layout_alignParentTop="true"
                         android:layout_alignParentEnd="true"
                         android:layout_marginEnd="16dp"
-                        android:background="@drawable/button_background"
-                        android:src="@android:drawable/ic_menu_preferences"
-                        app:tint="@color/text_red"
+                        android:src="@drawable/ic_checkbox_unchecked"
                         android:padding="8dp"
                         android:contentDescription="checklist item 1"
                         android:elevation="10dp" />
@@ -391,9 +389,7 @@
                         android:layout_alignParentTop="true"
                         android:layout_alignParentEnd="true"
                         android:layout_marginEnd="16dp"
-                        android:background="@drawable/button_background"
-                        android:src="@android:drawable/ic_menu_preferences"
-                        app:tint="@color/text_red"
+                        android:src="@drawable/ic_checkbox_unchecked"
                         android:padding="8dp"
                         android:contentDescription="checklist item 2"
                         android:elevation="10dp" />
@@ -430,9 +426,7 @@
                         android:layout_alignParentTop="true"
                         android:layout_alignParentEnd="true"
                         android:layout_marginEnd="16dp"
-                        android:background="@drawable/button_background"
-                        android:src="@android:drawable/ic_menu_preferences"
-                        app:tint="@color/text_red"
+                        android:src="@drawable/ic_checkbox_unchecked"
                         android:padding="8dp"
                         android:contentDescription="checklist item 3"
                         android:elevation="10dp" />
