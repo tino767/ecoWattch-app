@@ -61,8 +61,9 @@
             android:layout_centerVertical="true"
             android:layout_marginStart="4dp"
             android:layout_toEndOf="@id/meter_background"
-            android:rotation="90"
-            android:src="@android:drawable/arrow_down_float"
+            android:rotation="270"
+            android:background="@android:color/transparent"
+            android:src="@drawable/ic_triangle"
             app:tint="@color/white" />
 
     </RelativeLayout>
@@ -352,9 +353,7 @@
                         android:layout_alignParentTop="true"
                         android:layout_alignParentEnd="true"
                         android:layout_marginEnd="16dp"
-                        android:background="@drawable/button_background"
-                        android:src="@android:drawable/ic_menu_preferences"
-                        app:tint="@color/text_red"
+                        android:src="@drawable/ic_checkbox_unchecked"
                         android:padding="8dp"
                         android:contentDescription="checklist item 1"
                         android:elevation="10dp" />
@@ -391,9 +390,7 @@
                         android:layout_alignParentTop="true"
                         android:layout_alignParentEnd="true"
                         android:layout_marginEnd="16dp"
-                        android:background="@drawable/button_background"
-                        android:src="@android:drawable/ic_menu_preferences"
-                        app:tint="@color/text_red"
+                        android:src="@drawable/ic_checkbox_unchecked"
                         android:padding="8dp"
                         android:contentDescription="checklist item 2"
                         android:elevation="10dp" />
@@ -430,9 +427,7 @@
                         android:layout_alignParentTop="true"
                         android:layout_alignParentEnd="true"
                         android:layout_marginEnd="16dp"
-                        android:background="@drawable/button_background"
-                        android:src="@android:drawable/ic_menu_preferences"
-                        app:tint="@color/text_red"
+                        android:src="@drawable/ic_checkbox_unchecked"
                         android:padding="8dp"
                         android:contentDescription="checklist item 3"
                         android:elevation="10dp" />
@@ -541,8 +536,9 @@
                 </LinearLayout>
 
                 <!-- Logout Button -->
-                <Button
+                <TextView
                     android:id="@+id/profile_logout_button"
+                    android:tag="primary_text"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="Logout"
@@ -552,6 +548,7 @@
                     android:textSize="16sp"
                     android:textStyle="bold"
                     android:paddingVertical="12dp"
+                    android:gravity="center"
                     android:layout_marginTop="8dp" />
 
             </LinearLayout>

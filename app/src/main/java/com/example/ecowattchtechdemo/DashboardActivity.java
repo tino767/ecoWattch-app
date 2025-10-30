@@ -50,7 +50,7 @@ public class DashboardActivity extends AppCompatActivity {
 
     // Profile components
     private TextView profileUsername, profileDorm;
-    private Button profileLogoutButton;
+    private TextView profileLogoutButton;
 
     // Daily Tips component
     private TextView dailyTipText;
@@ -191,11 +191,16 @@ public class DashboardActivity extends AppCompatActivity {
         shop = findViewById(R.id.shop_button);
         hamburgerButton = findViewById(R.id.hamburger_button);
 
+        // Disable Records button (Coming Soon)
+        records.setEnabled(false);
+        records.setAlpha(0.5f); // Visual indicator that it's disabled
+
         records.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Intent intent = new Intent(DashboardActivity.this, RecordsActivity.class);
-                startActivity(intent);
+                // Disabled - Coming Soon
+                // Intent intent = new Intent(DashboardActivity.this, RecordsActivity.class);
+                // startActivity(intent);
             }
         });
 
@@ -429,9 +434,9 @@ public class DashboardActivity extends AppCompatActivity {
                     editor.putBoolean("checklist_item_1", true);
                     editor.apply();
 
-                    // mark complete on screen
-                    taskIcon.setImageResource(android.R.drawable.checkbox_on_background);
-                    taskIcon.setTag("primary_color");
+                    // mark complete on screen - show checkmark
+                    taskIcon.setImageResource(R.drawable.ic_checkmark);
+                    taskIcon.setTag("accent_color");
                     taskText.setTag("secondary_text");
 
                     tm.applyTheme();
@@ -450,9 +455,9 @@ public class DashboardActivity extends AppCompatActivity {
                     editor.putBoolean("checklist_item_2", true);
                     editor.apply();
 
-                    // mark complete on screen
-                    taskIcon.setImageResource(android.R.drawable.checkbox_on_background);
-                    taskIcon.setTag("primary_color");
+                    // mark complete on screen - show checkmark
+                    taskIcon.setImageResource(R.drawable.ic_checkmark);
+                    taskIcon.setTag("accent_color");
                     taskText.setTag("secondary_text");
 
                     tm.applyTheme();
@@ -471,9 +476,9 @@ public class DashboardActivity extends AppCompatActivity {
                     editor.putBoolean("checklist_item_3", true);
                     editor.apply();
 
-                    // mark complete on screen
-                    taskIcon.setImageResource(android.R.drawable.checkbox_on_background);
-                    taskIcon.setTag("primary_color");
+                    // mark complete on screen - show checkmark
+                    taskIcon.setImageResource(R.drawable.ic_checkmark);
+                    taskIcon.setTag("accent_color");
                     taskText.setTag("secondary_text");
 
                     tm.applyTheme();
