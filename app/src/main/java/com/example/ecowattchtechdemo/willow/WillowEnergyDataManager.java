@@ -1,7 +1,9 @@
 package com.example.ecowattchtechdemo.willow;
 
+import android.content.Context;
 import android.util.Log;
 import com.example.ecowattchtechdemo.willow.models.*;
+import com.example.ecowattchtechdemo.gamification.DormPointsManager;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -17,6 +19,7 @@ public class WillowEnergyDataManager {
     private WillowApiService apiService;
     private String accessToken;
     private long tokenExpirationTime;
+    private DormPointsManager pointsManager; // Add gamification integration
     
     // Building mappings
     private final Map<String, String> buildingNames = new HashMap<String, String>() {{
@@ -25,6 +28,7 @@ public class WillowEnergyDataManager {
         put(WillowApiV3Config.TWIN_ID_SECHRIST, "SECHRIST");
     }};
     
+    // Remove hardcoded positions - now dynamic based on points
     private final Map<String, String> buildingPositions = new HashMap<String, String>() {{
         put("TINSLEY", "1ST PLACE");
         put("GABALDON", "2ND PLACE");
@@ -37,6 +41,19 @@ public class WillowEnergyDataManager {
     
     public WillowEnergyDataManager(String baseUrl) {
         this.apiService = WillowApiClient.getApiService(baseUrl);
+    }
+    
+    /**
+     * Constructor with context for gamification features
+     */
+    public WillowEnergyDataManager(Context context) {
+        this.apiService = WillowApiClient.getApiService();
+        this.pointsManager = new DormPointsManager(context);
+    }
+    
+    public WillowEnergyDataManager(String baseUrl, Context context) {
+        this.apiService = WillowApiClient.getApiService(baseUrl);
+        this.pointsManager = new DormPointsManager(context);
     }
     
     /**
@@ -105,7 +122,8 @@ public class WillowEnergyDataManager {
             return;
         }
         
-        final String buildingName = buildingNames.getOrDefault(buildingTwinId, "UNKNOWN");
+        final String buildingName = buildingNames.containsKey(buildingTwinId) ? 
+            buildingNames.get(buildingTwinId) : "UNKNOWN";
         
         Log.d(TAG, "Fetching energy data for building: " + buildingName + " (" + buildingTwinId + ")");
         
@@ -370,6 +388,13 @@ public class WillowEnergyDataManager {
             energyData.setDataAvailable(true);
             energyData.setStatus("Live Data");
             
+            // 🎮 GAMIFICATION: Record today's energy usage for comparison
+            if (pointsManager != null) {
+                String dormName = mapBuildingNameToDorm(buildingName);
+                pointsManager.recordTodayEnergyUsage(dormName, totalEnergy);
+                Log.d(TAG, "🎮 Recorded energy usage for " + buildingName + " (mapped to " + dormName + "): " + totalEnergy + " kWh");
+            }
+            
             // Calculate potential energy
             energyData.calculatePotentialEnergy();
             
@@ -400,6 +425,14 @@ public class WillowEnergyDataManager {
         fallbackData.setDataAvailable(false);
         fallbackData.setStatus("Simulated Data");
         
+        // 🎮 GAMIFICATION: Record simulated energy usage for testing
+        if (pointsManager != null) {
+            double simulatedDailyTotal = fallbackData.getDailyTotalKWh();
+            String dormName = mapBuildingNameToDorm(buildingName);
+            pointsManager.recordTodayEnergyUsage(dormName, simulatedDailyTotal);
+            Log.d(TAG, "🎮 Recorded simulated energy for " + buildingName + " (mapped to " + dormName + "): " + simulatedDailyTotal + " kWh");
+        }
+        
         Log.d(TAG, "Using fallback data for " + buildingName + ": " + currentUsage + " kW");
         
         return fallbackData;
@@ -415,7 +448,7 @@ public class WillowEnergyDataManager {
         
         // Building efficiency factor (based on actual building characteristics)
         double efficiencyFactor = 1.0;
-        switch (buildingName.toUpperCase()) {
+        switch (buildingName.toUpperCase(java.util.Locale.US)) {
             case "TINSLEY": efficiencyFactor = 0.85; break; // Newer building, more efficient
             case "GABALDON": efficiencyFactor = 1.0; break; // Average efficiency
             case "SECHRIST": efficiencyFactor = 1.15; break; // Older building, less efficient
@@ -426,10 +459,72 @@ public class WillowEnergyDataManager {
     }
     
     /**
-     * Get building position for leaderboard
+     * Get building position for leaderboard (now dynamic based on points!)
      */
     public String getBuildingPosition(String buildingName) {
-        return buildingPositions.get(buildingName.toUpperCase());
+        if (pointsManager != null) {
+            // Use dynamic leaderboard based on potential energy points
+            String dormName = mapBuildingNameToDorm(buildingName);
+            String dynamicPosition = pointsManager.getDormPosition(dormName);
+            Log.d(TAG, "🏆 Dynamic position for " + buildingName + " (mapped to " + dormName + "): " + dynamicPosition);
+            return dynamicPosition;
+        } else {
+            // Fallback to hardcoded positions if no points manager
+            Log.w(TAG, "⚠️ No points manager, using hardcoded positions");
+            return buildingPositions.get(buildingName.toUpperCase(java.util.Locale.US));
+        }
+    }
+    
+    /**
+     * Get individual spendable points (for UI display)
+     */
+    public int getDormPotentialEnergy(String buildingName) {
+        if (pointsManager != null) {
+            // Return individual spendable points for UI display (not dorm score points)
+            return pointsManager.getIndividualSpendablePoints();
+        }
+        return 0;
+    }
+    
+    /**
+     * Get dorm score points (for leaderboard)
+     */
+    public int getDormScorePoints(String buildingName) {
+        if (pointsManager != null) {
+            String dormName = mapBuildingNameToDorm(buildingName);
+            return pointsManager.getDormTotalPoints(dormName);
+        }
+        return 0;
+    }
+    
+    /**
+     * Get yesterday's energy usage for display
+     */
+    public double getYesterdayEnergyUsage(String buildingName) {
+        if (pointsManager != null) {
+            return pointsManager.getYesterdayEnergyUsage(buildingName);
+        }
+        return 0.0;
+    }
+    
+    /**
+     * Perform manual daily energy check (for testing)
+     */
+    public Map<String, Integer> performManualEnergyCheck() {
+        if (pointsManager != null) {
+            return pointsManager.performDailyEnergyCheck();
+        }
+        return new HashMap<>();
+    }
+    
+    /**
+     * Get gamification debug info
+     */
+    public String getGamificationDebugInfo() {
+        if (pointsManager != null) {
+            return pointsManager.getDebugInfo();
+        }
+        return "No gamification system available";
     }
     
     /**
@@ -450,6 +545,125 @@ public class WillowEnergyDataManager {
         
         Log.d(TAG, "🔧 DEBUGGING: Testing API endpoints for twin ID: " + buildingTwinId);
         
+        // First, let's search for available twins to see what we can access
+        searchForAvailableTwins(buildingTwinId, callback);
+    }
+    
+    /**
+     * Search for available twins instead of using hardcoded IDs
+     */
+    private void searchForAvailableTwins(String targetTwinId, EnergyDataCallback callback) {
+        Log.d(TAG, "🔍 Searching for available twins...");
+        
+        // Create a simple search request to find all accessible twins
+        Map<String, Object> searchRequest = new HashMap<>();
+        searchRequest.put("pageSize", 50); // Get more results
+        
+        Call<TwinsResponse> searchCall = apiService.searchTwins(accessToken, searchRequest);
+        
+        searchCall.enqueue(new Callback<TwinsResponse>() {
+            @Override
+            public void onResponse(Call<TwinsResponse> call, Response<TwinsResponse> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    TwinsResponse twinsResponse = response.body();
+                    
+                    if (twinsResponse.hasTwins()) {
+                        Log.d(TAG, "✅ Found " + twinsResponse.getContent().size() + " accessible twins");
+                        
+                        // Log all available twins for debugging
+                        for (DigitalTwin twin : twinsResponse.getContent()) {
+                            Log.d(TAG, "Available twin: " + twin.getName() + " (ID: " + twin.getId() + ", Model: " + twin.getModelId() + ")");
+                        }
+                        
+                        // Try to find a matching twin by name or use any building twin
+                        DigitalTwin buildingTwin = findBestMatchingTwin(twinsResponse.getContent(), targetTwinId);
+                        
+                        if (buildingTwin != null) {
+                            Log.d(TAG, "✅ Using twin: " + buildingTwin.getName() + " (ID: " + buildingTwin.getId() + ")");
+                            testDirectTimeSeries(buildingTwin, callback);
+                        } else {
+                            Log.w(TAG, "⚠️ No suitable building twin found, using fallback data");
+                            String buildingName = buildingNames.containsKey(targetTwinId) ? 
+                                buildingNames.get(targetTwinId) : "UNKNOWN";
+                            EnergyDataResponse fallbackData = createFallbackData(buildingName, targetTwinId);
+                            callback.onSuccess(fallbackData);
+                        }
+                    } else {
+                        Log.w(TAG, "⚠️ No twins found in search response");
+                        String buildingName = buildingNames.containsKey(targetTwinId) ? 
+                            buildingNames.get(targetTwinId) : "UNKNOWN";
+                        EnergyDataResponse fallbackData = createFallbackData(buildingName, targetTwinId);
+                        callback.onSuccess(fallbackData);
+                    }
+                } else {
+                    Log.e(TAG, "❌ Twin search failed: " + response.code());
+                    if (response.errorBody() != null) {
+                        try {
+                            Log.e(TAG, "Error details: " + response.errorBody().string());
+                        } catch (Exception e) {
+                            Log.e(TAG, "Could not read error body");
+                        }
+                    }
+                    
+                    // Fallback to original approach
+                    tryOriginalTwinAccess(targetTwinId, callback);
+                }
+            }
+            
+            @Override
+            public void onFailure(Call<TwinsResponse> call, Throwable t) {
+                Log.e(TAG, "❌ Twin search network error: " + t.getMessage(), t);
+                // Fallback to original approach
+                tryOriginalTwinAccess(targetTwinId, callback);
+            }
+        });
+    }
+    
+    /**
+     * Find the best matching twin from available twins
+     */
+    private DigitalTwin findBestMatchingTwin(List<DigitalTwin> availableTwins, String targetTwinId) {
+        String targetBuildingName = buildingNames.containsKey(targetTwinId) ? 
+            buildingNames.get(targetTwinId).toLowerCase(java.util.Locale.US) : "";
+        
+        // First, try to find a twin with matching name
+        for (DigitalTwin twin : availableTwins) {
+            if (twin.getName() != null && 
+                twin.getName().toLowerCase().contains(targetBuildingName) &&
+                !targetBuildingName.isEmpty()) {
+                Log.d(TAG, "Found name match: " + twin.getName());
+                return twin;
+            }
+        }
+        
+        // If no name match, try to find any building-like twin
+        for (DigitalTwin twin : availableTwins) {
+            if (twin.getName() != null) {
+                String name = twin.getName().toLowerCase();
+                if (name.contains("building") || name.contains("hall") || 
+                    name.contains("dorm") || name.contains("residence")) {
+                    Log.d(TAG, "Found building-like twin: " + twin.getName());
+                    return twin;
+                }
+            }
+        }
+        
+        // If still no match, use the first available twin
+        if (!availableTwins.isEmpty()) {
+            DigitalTwin firstTwin = availableTwins.get(0);
+            Log.d(TAG, "Using first available twin: " + firstTwin.getName());
+            return firstTwin;
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Fallback to original twin access method
+     */
+    private void tryOriginalTwinAccess(String buildingTwinId, EnergyDataCallback callback) {
+        Log.d(TAG, "🔧 Trying original twin access method");
+        
         // Test 1: Try to get the building twin directly
         Call<DigitalTwin> twinCall = apiService.getTwinById(accessToken, buildingTwinId, true);
         
@@ -464,14 +678,20 @@ public class WillowEnergyDataManager {
                     testDirectTimeSeries(building, callback);
                 } else {
                     Log.e(TAG, "❌ Failed to get building twin: " + response.code());
-                    callback.onError("Failed to get building twin: " + response.code());
+                    String buildingName = buildingNames.containsKey(buildingTwinId) ? 
+                        buildingNames.get(buildingTwinId) : "UNKNOWN";
+                    EnergyDataResponse fallbackData = createFallbackData(buildingName, buildingTwinId);
+                    callback.onSuccess(fallbackData);
                 }
             }
             
             @Override
             public void onFailure(Call<DigitalTwin> call, Throwable t) {
                 Log.e(TAG, "❌ Network error getting building twin: " + t.getMessage(), t);
-                callback.onError("Network error: " + t.getMessage());
+                String buildingName = buildingNames.containsKey(buildingTwinId) ? 
+                    buildingNames.get(buildingTwinId) : "UNKNOWN";
+                EnergyDataResponse fallbackData = createFallbackData(buildingName, buildingTwinId);
+                callback.onSuccess(fallbackData);
             }
         });
     }
@@ -495,19 +715,22 @@ public class WillowEnergyDataManager {
                     
                     if (!points.isEmpty()) {
                         // Process and return real data
-                        String buildingName = buildingNames.getOrDefault(building.getId(), building.getName());
+                        String buildingName = buildingNames.containsKey(building.getId()) ? 
+                            buildingNames.get(building.getId()) : building.getName();
                         EnergyDataResponse energyData = processTimeSeriesData(points, buildingName, building.getId());
                         callback.onSuccess(energyData);
                     } else {
                         Log.w(TAG, "⚠️ No time series points found");
-                        String buildingName = buildingNames.getOrDefault(building.getId(), building.getName());
+                        String buildingName = buildingNames.containsKey(building.getId()) ? 
+                            buildingNames.get(building.getId()) : building.getName();
                         EnergyDataResponse fallbackData = createFallbackData(buildingName, building.getId());
                         callback.onSuccess(fallbackData);
                     }
                 } else {
                     Log.e(TAG, "❌ Direct time series failed: " + response.code());
                     // Try the simplified search approach
-                    String buildingName = buildingNames.getOrDefault(building.getId(), building.getName());
+                    String buildingName = buildingNames.containsKey(building.getId()) ? 
+                        buildingNames.get(building.getId()) : building.getName();
                     findEnergyCapabilities(building, buildingName, callback);
                 }
             }
@@ -516,7 +739,8 @@ public class WillowEnergyDataManager {
             public void onFailure(Call<List<TimeSeriesPoint>> call, Throwable t) {
                 Log.e(TAG, "❌ Direct time series network error: " + t.getMessage(), t);
                 // Try the simplified search approach
-                String buildingName = buildingNames.getOrDefault(building.getId(), building.getName());
+                String buildingName = buildingNames.containsKey(building.getId()) ? 
+                    buildingNames.get(building.getId()) : building.getName();
                 findEnergyCapabilities(building, buildingName, callback);
             }
         });
@@ -534,5 +758,26 @@ public class WillowEnergyDataManager {
      */
     public String getBuildingName(String twinId) {
         return buildingNames.get(twinId);
+    }
+    
+    /**
+     * Map API building names to internal dorm names for gamification
+     */
+    private String mapBuildingNameToDorm(String buildingName) {
+        if (buildingName == null) return buildingName;
+        
+        String normalized = buildingName.toLowerCase(java.util.Locale.US).trim();
+        
+        if (normalized.contains("tinsley")) {
+            return "TINSLEY";
+        } else if (normalized.contains("gabaldon")) {
+            return "GABALDON";
+        } else if (normalized.contains("sechrist")) {
+            return "SECHRIST";
+        }
+        
+        // For debugging - return original name if no match
+        Log.w(TAG, "🎮 No dorm mapping found for building: " + buildingName);
+        return buildingName;
     }
 }

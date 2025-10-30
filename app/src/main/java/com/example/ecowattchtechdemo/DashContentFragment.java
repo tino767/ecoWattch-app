@@ -52,6 +52,17 @@ public class DashContentFragment extends Fragment {
             });
         }
         
+        // 🎮 Add long-press to potential energy for manual energy check
+        if (potentialEnergyText != null) {
+            potentialEnergyText.setOnLongClickListener(v -> {
+                if (getActivity() instanceof DashboardActivity) {
+                    ((DashboardActivity) getActivity()).manualEnergyCheck();
+                    return true; // Consume the event
+                }
+                return false;
+            });
+        }
+        
         // Set up refresh button
         View refreshButton = view.findViewById(R.id.refresh_button);
         if (refreshButton != null) {

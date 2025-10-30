@@ -11,6 +11,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 import java.util.Random;
+import java.util.Map;
 import java.text.DecimalFormat;
 import android.widget.ImageView;
 import android.widget.Button;
@@ -25,6 +26,8 @@ import com.android.volley.toolbox.Volley;
 import com.example.ecowattchtechdemo.willow.WillowEnergyDataManager;
 import com.example.ecowattchtechdemo.willow.WillowApiV3Config;
 import com.example.ecowattchtechdemo.willow.models.EnergyDataResponse;
+import com.example.ecowattchtechdemo.gamification.EnergyCheckScheduler;
+import com.example.ecowattchtechdemo.gamification.GamificationTester;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -119,6 +122,12 @@ public class DashboardActivity extends AppCompatActivity {
         // Initialize Willow API manager
         initializeWillowApi();
         
+        // 🎮 Schedule daily energy check at 10 PM
+        EnergyCheckScheduler.scheduleDailyEnergyCheck(this);
+        
+        // 🎯 Handle daily check-in for +25 points per dorm
+        performDailyCheckin();
+        
         Log.d(TAG, "Live data system initialized");
     }
     
@@ -127,7 +136,8 @@ public class DashboardActivity extends AppCompatActivity {
      */
     private void initializeWillowApi() {
         try {
-            energyDataManager = new WillowEnergyDataManager();
+            // 🎮 Use context-aware constructor for gamification features
+            energyDataManager = new WillowEnergyDataManager(this);
             
             // Try to authenticate with stored credentials
             authenticateWithWillow();
@@ -193,6 +203,56 @@ public class DashboardActivity extends AppCompatActivity {
         });
     }
     
+    /**
+     * 🎯 Handle daily check-in system for +25 points per dorm
+     * Awards points for daily app usage (20 days = 1 palette = 500 points)
+     */
+    private void performDailyCheckin() {
+        if (energyDataManager == null) {
+            Log.w(TAG, "Energy data manager not initialized, skipping daily check-in");
+            return;
+        }
+        
+        // Get points manager from the energy data manager
+        try {
+            // Use reflection or add a getter method to access pointsManager
+            // For now, we'll create our own instance
+            com.example.ecowattchtechdemo.gamification.DormPointsManager pointsManager = 
+                new com.example.ecowattchtechdemo.gamification.DormPointsManager(this);
+            
+            String[] dormNames = {"TINSLEY", "GABALDON", "SECHRIST"};
+            int totalCheckins = 0;
+            
+            for (String dormName : dormNames) {
+                boolean checkedIn = pointsManager.recordDailyCheckin(dormName);
+                if (checkedIn) {
+                    totalCheckins++;
+                    Log.d(TAG, "🎯 Daily check-in successful for " + dormName + ": +25 points");
+                } else {
+                    Log.d(TAG, "ℹ️ " + dormName + " already checked in today");
+                }
+            }
+            
+            if (totalCheckins > 0) {
+                Log.d(TAG, String.format("🎉 Daily check-in completed! %d dorms earned +25 SPENDABLE points each", totalCheckins));
+                
+                // Show brief notification to user about check-in rewards
+                final int finalTotalCheckins = totalCheckins; // Make variable final for lambda
+                runOnUiThread(() -> {
+                    if (dashContentFragment != null && finalTotalCheckins > 0) {
+                        String message = finalTotalCheckins == 3 ? 
+                            "Daily Check-in Complete! All dorms earned +25 spendable points 💰" :
+                            finalTotalCheckins + " dorm(s) earned daily check-in spendable points 💰";
+                        // We can add a toast or update UI here if needed
+                    }
+                });
+            }
+            
+        } catch (Exception e) {
+            Log.e(TAG, "Error during daily check-in process", e);
+        }
+    }
+    
     private void setupNavigationButtons() {
         records = findViewById(R.id.records_button);
         shop = findViewById(R.id.shop_button);
@@ -227,15 +287,6 @@ public class DashboardActivity extends AppCompatActivity {
             }
         });
 
-        // Add long press listener to access Willow API test interface
-        hamburgerButton.setOnLongClickListener(new View.OnLongClickListener() {
-            @Override
-            public boolean onLongClick(View v) {
-                Intent intent = new Intent(DashboardActivity.this, WillowApiV3TestActivity.class);
-                startActivity(intent);
-                return true;
-            }
-        });
     }
 
     /**
@@ -905,21 +956,17 @@ public class DashboardActivity extends AppCompatActivity {
         // Update the energy meter with real usage
         updateMeter(liveUsage, thresholdValue);
         
-        // Update dorm status with position
+        // 🎮 Update dorm status with DYNAMIC position based on points
         String position = energyDataManager.getBuildingPosition(data.getBuildingName());
         String statusText = data.getBuildingName() + " - " + (position != null ? position : "LIVE DATA");
         dashContentFragment.updateDormStatus(statusText);
         
-        // Use real potential energy if available
-        if (data.getPotentialEnergy() != null) {
-            dashContentFragment.updatePotentialEnergy(data.getPotentialEnergy().intValue() + " Potential Energy");
-        } else {
-            // Calculate potential energy based on real usage
-            int potentialEnergy = Math.max(0, 300 - (liveUsage - 200));
-            dashContentFragment.updatePotentialEnergy(potentialEnergy + " Potential Energy");
-        }
+        // 🎮 Use POTENTIAL ENERGY POINTS from gamification system
+        int potentialEnergyPoints = energyDataManager.getDormPotentialEnergy(data.getBuildingName());
+        dashContentFragment.updatePotentialEnergy(potentialEnergyPoints + " Potential Energy");
+        Log.d(TAG, "🎮 Updated potential energy points: " + potentialEnergyPoints);
         
-        // Display real daily total or calculated value
+        // 🎮 Display TODAY'S total vs YESTERDAY'S total for comparison
         String dailyTotalText;
         if (data.getDailyTotalKWh() != null) {
             dailyTotalText = "Today's Total: " + decimalFormat.format(data.getDailyTotalAsInt()) + "kWh (Real Data ✅)";
@@ -927,6 +974,13 @@ public class DashboardActivity extends AppCompatActivity {
             int calculatedTotal = liveUsage * 24;
             dailyTotalText = "Estimated Daily: " + decimalFormat.format(calculatedTotal) + "kWh (Calculated)";
         }
+        
+        // Add yesterday's comparison for gamification context
+        double yesterdayUsage = energyDataManager.getYesterdayEnergyUsage(data.getBuildingName());
+        if (yesterdayUsage > 0) {
+            dailyTotalText += " | Yesterday: " + decimalFormat.format((int)yesterdayUsage) + "kWh";
+        }
+        
         dashContentFragment.updateYesterdaysTotal(dailyTotalText);
         
         Log.d(TAG, "✅ Real data update completed successfully - Next update in " + (UPDATE_INTERVAL/1000) + " seconds");
@@ -951,19 +1005,26 @@ public class DashboardActivity extends AppCompatActivity {
         // Update the energy meter with new usage
         updateMeter(liveUsage, thresholdValue);
 
-        // Update dorm status with position
-        String statusText = currentDormName + " - " + dormPositions[currentDormIndex];
+        // 🎮 Update dorm status with DYNAMIC position based on points
+        String position = energyDataManager.getBuildingPosition(currentDormName);
+        String statusText = currentDormName + " - " + (position != null ? position : dormPositions[currentDormIndex]);
         dashContentFragment.updateDormStatus(statusText);
 
-        // Calculate potential energy based on efficiency (dynamic calculation)
-        int optimalUsage = (int) (baseUsage * 0.8); // 80% of base usage is optimal
-        int potentialEnergy = Math.max(0, (liveUsage > optimalUsage) ? 
-            (int)((double)(liveUsage - optimalUsage) / liveUsage * 1000) : 1000);
-        dashContentFragment.updatePotentialEnergy(potentialEnergy + " Potential Energy");
+        // 🎮 Use POTENTIAL ENERGY POINTS from gamification system
+        int potentialEnergyPoints = energyDataManager.getDormPotentialEnergy(currentDormName);
+        dashContentFragment.updatePotentialEnergy(potentialEnergyPoints + " Potential Energy");
+        Log.d(TAG, "🎮 Updated potential energy points: " + potentialEnergyPoints);
 
-        // Simulate yesterday's total
-        int yesterdayTotal = liveUsage * 24 + random.nextInt(1000);
-        dashContentFragment.updateYesterdaysTotal("Yesterday's Total: " + decimalFormat.format(yesterdayTotal) + "kWh (Simulated 🔄)");
+        // 🎮 Display TODAY'S vs YESTERDAY'S usage for gamification context
+        int todayEstimate = liveUsage * 24;
+        double yesterdayUsage = energyDataManager.getYesterdayEnergyUsage(currentDormName);
+        
+        String dailyTotalText = "Today's Est: " + decimalFormat.format(todayEstimate) + "kWh (Simulated 🔄)";
+        if (yesterdayUsage > 0) {
+            dailyTotalText += " | Yesterday: " + decimalFormat.format((int)yesterdayUsage) + "kWh";
+        }
+        
+        dashContentFragment.updateYesterdaysTotal(dailyTotalText);
 
         Log.d(TAG, "✅ Simulated data update completed successfully - Next update in " + (UPDATE_INTERVAL/1000) + " seconds");
     }
@@ -1050,6 +1111,41 @@ public class DashboardActivity extends AppCompatActivity {
         updateUIWithLiveData();
         
         Log.d(TAG, "Manual refresh completed - switched to: " + currentDormName);
+    }
+    
+    /**
+     * 🎮 Manual energy check - for testing gamification logic
+     */
+    public void manualEnergyCheck() {
+        Log.d(TAG, "🎮 Manual energy check requested");
+        
+        if (energyDataManager != null) {
+            // Run the complete test suite first (for development/testing)
+            boolean testsPassed = GamificationTester.runCompleteTest(this);
+            
+            if (testsPassed) {
+                Log.d(TAG, "🎮 ✅ All gamification tests passed!");
+            } else {
+                Log.w(TAG, "🎮 ⚠️ Some gamification tests failed");
+            }
+            
+            // Then perform normal manual energy check
+            Map<String, Integer> pointChanges = energyDataManager.performManualEnergyCheck();
+            
+            // Log the results
+            for (Map.Entry<String, Integer> entry : pointChanges.entrySet()) {
+                Log.d(TAG, String.format("🎮 %s: %+d points", entry.getKey(), entry.getValue()));
+            }
+            
+            // Show debug info
+            String debugInfo = energyDataManager.getGamificationDebugInfo();
+            Log.d(TAG, "🎮 Gamification Debug:\n" + debugInfo);
+            
+            // Update UI to reflect new positions
+            updateUIWithLiveData();
+        }
+        
+        Log.d(TAG, "🎮 Manual energy check completed");
     }
     
     /**
