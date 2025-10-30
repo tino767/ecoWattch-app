@@ -2,10 +2,18 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const cors = require("cors");
 const pool = require("./db"); // now uses mysql2 connection pool
+const bcrypt = require('bcryptjs');
 
 const app = express();
 app.use(cors());
 app.use(bodyParser.json());
+
+//hashing function
+async function hashPassword(plain) {
+  const cost = 12;                // work factor; 12 is a good default
+  const hash = await bcrypt.hash(plain, cost);
+  return hash; // store this in DB
+}
 
 // ------------------------------
 // LOGIN endpoint
@@ -13,13 +21,19 @@ app.use(bodyParser.json());
 app.post("/login", async (req, res) => {
   const { usernames, passwords } = req.body;
 
+  //make a new variable for the hashed password
+  let passMatch
+
   try {
     const [rows] = await pool.query(
-      "SELECT * FROM Users WHERE Username = ? AND PasswordHash = ?",
-      [usernames, passwords]
+      "SELECT * FROM Users WHERE Username = ?",
+      [usernames]
     );
 
-    if (rows.length > 0) {
+    //Compare the plaintext password with the stored hash
+    passMatch = await bcrypt.compare(passwords, rows[0].PasswordHash);
+
+    if (rows.length > 0 && passMatch) {
       res.json({ status: "success", user: rows[0] });
     } else {
       res.json({ status: "failure", message: "Invalid credentials" });
@@ -36,6 +50,9 @@ app.post("/login", async (req, res) => {
 app.post("/signup", async (req, res) => {
   try {
     const { usernames, passwords, dormitory } = req.body;
+
+    //make a new variable for the hashed password
+    let passHash = passwords
 
     if (!usernames || !passwords) {
       return res.status(400).json({
@@ -56,10 +73,13 @@ app.post("/signup", async (req, res) => {
         .json({ status: "error", message: "Username already exists" });
     }
 
+    //hash the password
+    passHash = await hashPassword(passwords);
+
     // Insert the new user
     await pool.query(
       "INSERT INTO Users (Username, PasswordHash, DormName) VALUES (?, ?, ?)",
-      [usernames, passwords, dormitory]
+      [usernames, passHash, dormitory]
     );
 
     res
