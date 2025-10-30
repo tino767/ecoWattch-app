@@ -16,11 +16,18 @@ import android.widget.ImageView;
 import android.widget.Button;
 import android.widget.TextView;
 import android.content.SharedPreferences;
+import android.widget.Toast;
 
 // Willow API imports
+import com.android.volley.Request;
+import com.android.volley.toolbox.JsonObjectRequest;
+import com.android.volley.toolbox.Volley;
 import com.example.ecowattchtechdemo.willow.WillowEnergyDataManager;
 import com.example.ecowattchtechdemo.willow.WillowApiV3Config;
 import com.example.ecowattchtechdemo.willow.models.EnergyDataResponse;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 public class DashboardActivity extends AppCompatActivity {
     private static final String TAG = "DashboardActivity";
@@ -983,6 +990,50 @@ public class DashboardActivity extends AppCompatActivity {
             currentDormName = dormNames[currentDormIndex];
             Log.d(TAG, "🏠 Rotated to dorm: " + currentDormName + " (Index: " + currentDormIndex + ")");
         }
+
+        /*
+        AVNISH, this is where the where I put my code for the dorm points.
+        Once we have a chat about how they're gonna work and how you're gonna
+        Update the points at 10 or whatever, this will be moved
+         */
+
+        //make the json object
+        JSONObject jsonBody = new JSONObject();
+        try {
+            jsonBody.put("Tinsley_total_points", 5);
+            jsonBody.put("Sechrist_total_points", 1);
+            jsonBody.put("Gabaldon_total_points", 6);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        String url = "http://10.0.2.2:3000/dorm_points";  // local API on emulator
+
+        //make the request
+
+        JsonObjectRequest request = new JsonObjectRequest(Request.Method.POST, url, jsonBody,
+                response -> {
+                    Toast.makeText(this, "Points added", Toast.LENGTH_SHORT).show();
+                },
+                error -> {
+                    String errorMsg = "Points failed";
+                    if (error.networkResponse != null && error.networkResponse.data != null) {
+                        try {
+                            String responseBody = new String(error.networkResponse.data, "utf-8");
+                            JSONObject data = new JSONObject(responseBody);
+                            errorMsg = data.optString("message", errorMsg);
+                        } catch (Exception e) {
+                            // fallback to default errorMsg
+                        }
+                    }
+                    Toast.makeText(this, errorMsg, Toast.LENGTH_LONG).show();
+                }
+
+        );
+
+        Volley.newRequestQueue(this).add(request);
+
+        //end of dorm points code
     }
     
     /**
