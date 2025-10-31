@@ -86,6 +86,16 @@ public class ThemeManager {
                 ((TextView) view).setTextColor(colors.get("secondary_text"));
             } else if ("accent_text".equals(tag)) {
                 ((TextView) view).setTextColor(colors.get("accent_text"));
+            } else if ("dynamic_text".equals(tag)) {
+                // get background color
+                Color backgroundColor = getBackgroundColor(view);
+
+                if (backgroundColor == null) {
+                    // default to white
+                    ((TextView) view).setTextColor(Color.WHITE);
+                } else {
+                    // compute brightness of background color
+                }
             }
         }
 
@@ -149,6 +159,28 @@ public class ThemeManager {
                 applyThemeRecursively(group.getChildAt(i), colors);
             }
         }
+    }
+
+    // find background color of a textview
+    private Color getBackgroundColor(View view) {
+        // check for background in this view
+        Drawable background = view.getBackground();
+
+        if (background != null) {
+            // background found, get color
+
+            return null; // temp
+
+        } else {
+            // check parent view
+            View parentView = (View) view.getParent();
+
+            if (parentView != null) {
+                return getBackgroundColor(parentView);
+            }
+        }
+
+        return null; // idk
     }
 
     // Save theme colors to SharedPreferences

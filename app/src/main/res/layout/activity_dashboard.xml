@@ -108,7 +108,7 @@
                     app:tint="@color/white" />
 
                 <TextView
-                    android:tag="primary_text"
+                    android:tag="dynamic_text"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:fontFamily="@font/matrixtype_display"
@@ -120,7 +120,7 @@
             </LinearLayout>
 
             <TextView
-                android:tag="primary_text"
+                android:tag="dynamic_text"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:background="@drawable/pill_background"
@@ -162,7 +162,7 @@
                     app:tint="@color/white" />
 
                 <TextView
-                    android:tag="primary_text"
+                    android:tag="dynamic_text"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:fontFamily="@font/matrixtype_display"
@@ -174,7 +174,7 @@
             </LinearLayout>
 
                 <TextView
-                    android:tag="primary_text"
+                    android:tag="dynamic_text"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:background="@drawable/pill_background"
