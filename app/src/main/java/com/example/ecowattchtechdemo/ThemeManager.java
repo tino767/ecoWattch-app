@@ -180,10 +180,17 @@ public class ThemeManager {
         // check for background in this view
         Drawable background = view.getBackground();
 
-        if (background != null) {
-            // background found, get color
+        if (background != null) { // background found, get color
+            if (background instanceof GradientDrawable) {
+                // use accent color as background
 
-            return -1; // temp
+                return -1; // temp
+            } else {
+                // assume color is readable
+                return ((ColorDrawable) background).getColor();
+            }
+
+            // return -1; // temp
         } else {
             // check parent view
             View parentView = (View) view.getParent();
