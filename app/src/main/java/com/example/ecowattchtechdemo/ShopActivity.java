@@ -15,13 +15,14 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import com.example.ecowattchtechdemo.gamification.DormPointsManager;
 
 public class ShopActivity extends AppCompatActivity {
     TextView backButton;
     TextView tabPallets, tabOwned, tabMore;
     RecyclerView palletsRecycler, ownedRecycler;
 
-    TextView usernameText, dormitoryText;
+    TextView usernameText, dormitoryText, energyPointsText;
 
     private ShopAdapter palletsAdapter;
     private ShopAdapter ownedAdapter;
@@ -58,6 +59,7 @@ public class ShopActivity extends AppCompatActivity {
 
         usernameText = findViewById(R.id.username_text);
         dormitoryText = findViewById(R.id.dormitory_text);
+        energyPointsText = findViewById(R.id.energy_points_text);
 
         // load and display stored username/dormitory
         SharedPreferences prefs = getSharedPreferences("MyAppPrefs", Context.MODE_PRIVATE);
@@ -66,6 +68,11 @@ public class ShopActivity extends AppCompatActivity {
 
         usernameText.setText(username);
         dormitoryText.setText(dorm);
+
+        // Update energy points display with user's actual individual spendable points
+        DormPointsManager pointsManager = new DormPointsManager(this);
+        int spendablePoints = pointsManager.getIndividualSpendablePoints();
+        energyPointsText.setText(spendablePoints + " Energy");
 
         // Back button functionality
         backButton.setOnClickListener(new View.OnClickListener() {
@@ -93,9 +100,18 @@ public class ShopActivity extends AppCompatActivity {
         tm.applyTheme();
     }
 
+    @Override
     protected void onResume() {
         super.onResume();
+        // Update energy points when returning to shop
+        updateEnergyPointsDisplay();
         tm.applyTheme();
+    }
+
+    private void updateEnergyPointsDisplay() {
+        DormPointsManager pointsManager = new DormPointsManager(this);
+        int spendablePoints = pointsManager.getIndividualSpendablePoints();
+        energyPointsText.setText(spendablePoints + " Energy");
     }
 
     private void initializeSampleData() {
@@ -105,26 +121,26 @@ public class ShopActivity extends AppCompatActivity {
 
         // Gradient circle uses indices 5 (light) and 6 (dark) to match the UI background circles
         String[] peachColors = paletteColors.get("PEACH");
-        palletsList.add(new ShopItem("PEACH", 400, peachColors[5], peachColors[6]));
+        palletsList.add(new ShopItem("PEACH", 500, peachColors[5], peachColors[6]));
 
         String[] blueColors = paletteColors.get("BLUE");
         palletsList.add(new ShopItem("BLUE", 500, blueColors[5], blueColors[6]));
 
         String[] greenColors = paletteColors.get("GREEN");
-        palletsList.add(new ShopItem("GREEN", 600, greenColors[5], greenColors[6]));
+        palletsList.add(new ShopItem("GREEN", 500, greenColors[5], greenColors[6]));
 
         String[] magentaColors = paletteColors.get("MAGENTA");
-        palletsList.add(new ShopItem("MAGENTA", 450, magentaColors[5], magentaColors[6]));
+        palletsList.add(new ShopItem("MAGENTA", 500, magentaColors[5], magentaColors[6]));
 
         String[] cyanColors = paletteColors.get("CYAN");
-        palletsList.add(new ShopItem("CYAN", 550, cyanColors[5], cyanColors[6]));
+        palletsList.add(new ShopItem("CYAN", 500, cyanColors[5], cyanColors[6]));
 
         palletsList.get(0).setOwned(true);
         palletsList.get(1).setOwned(true);
 
         // Sample owned items - backend will replace with user's owned items
         ownedList = new ArrayList<>();
-        ownedList.add(new ShopItem("PEACH", 400, peachColors[5], peachColors[6]));
+        ownedList.add(new ShopItem("PEACH", 500, peachColors[5], peachColors[6]));
         ownedList.get(0).setOwned(true);
         ownedList.add(new ShopItem("BLUE", 500, blueColors[5], blueColors[6]));
         ownedList.get(1).setOwned(true);
@@ -234,8 +250,18 @@ public class ShopActivity extends AppCompatActivity {
     }
 
     private void switchToTab(TextView selectedTab) {
-        // Get the custom font
-        Typeface matrixFont = getResources().getFont(R.font.matrixtype_display);
+        // Get the custom font using backwards compatible method
+        Typeface matrixFont = null;
+        try {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                matrixFont = getResources().getFont(R.font.matrixtype_display);
+            } else {
+                matrixFont = androidx.core.content.res.ResourcesCompat.getFont(this, R.font.matrixtype_display);
+            }
+        } catch (Exception e) {
+            // Fallback to default font if custom font fails
+            matrixFont = Typeface.DEFAULT;
+        }
 
         // Reset all tabs to normal style (preserving custom font)
         tabPallets.setTypeface(matrixFont, Typeface.NORMAL);

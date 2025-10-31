@@ -92,4 +92,16 @@ public class WillowApiClient {
             return false;
         }
     }
+    
+    /**
+     * Get possible organization URLs to try
+     */
+    public static String[] getPossibleUrls() {
+        return new String[] {
+            "https://northernarizonauniversity.app.willowinc.com",
+            "https://nau.app.willowinc.com", 
+            "https://arizona.app.willowinc.com",
+            "https://azuniv.app.willowinc.com"
+        };
+    }
 }
