@@ -5,9 +5,11 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.LayerDrawable;
+import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
@@ -88,13 +90,25 @@ public class ThemeManager {
                 ((TextView) view).setTextColor(colors.get("accent_text"));
             } else if ("dynamic_text".equals(tag)) {
                 // get background color
-                Color backgroundColor = getBackgroundColor(view);
+                int backgroundColor = getBackgroundColor(view);
 
-                if (backgroundColor == null) {
-                    // default to white
+                if (backgroundColor < 0) {
+                    // background color not found - default to white
+                    Log.d("ThemeManager", "background color not found");
+
                     ((TextView) view).setTextColor(Color.WHITE);
                 } else {
                     // compute brightness of background color
+                    double luminance = (0.299 * Color.red(backgroundColor) +
+                            0.587 * Color.green(backgroundColor) +
+                            0.114 * Color.blue(backgroundColor)) / 255;
+
+                    // if bright, set text to black, otherwise white
+                    if (luminance > 0.5) {
+                        ((TextView) view).setTextColor(Color.BLACK);
+                    } else {
+                        ((TextView) view).setTextColor(Color.WHITE);
+                    }
                 }
             }
         }
@@ -162,15 +176,14 @@ public class ThemeManager {
     }
 
     // find background color of a textview
-    private Color getBackgroundColor(View view) {
+    private int getBackgroundColor(View view) {
         // check for background in this view
         Drawable background = view.getBackground();
 
         if (background != null) {
             // background found, get color
 
-            return null; // temp
-
+            return -1; // temp
         } else {
             // check parent view
             View parentView = (View) view.getParent();
@@ -180,7 +193,8 @@ public class ThemeManager {
             }
         }
 
-        return null; // idk
+        // default to failure
+        return -1;
     }
 
     // Save theme colors to SharedPreferences
