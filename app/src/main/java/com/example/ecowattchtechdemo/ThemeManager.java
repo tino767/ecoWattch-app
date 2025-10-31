@@ -185,19 +185,16 @@ public class ThemeManager {
                 // use accent color as background
 
                 return -1; // temp
-            } else {
-                // assume color is readable
-                return ((ColorDrawable) background).getColor();
             }
+            // assume color is readable
+            return ((ColorDrawable) background).getColor();
+        }
 
-            // return -1; // temp
-        } else {
-            // check parent view
-            View parentView = (View) view.getParent();
+        // no background found - check parent view
+        View parentView = (View) view.getParent();
 
-            if (parentView != null) {
-                return getBackgroundColor(parentView);
-            }
+        if (parentView != null) {
+            return getBackgroundColor(parentView);
         }
 
         // default to failure
