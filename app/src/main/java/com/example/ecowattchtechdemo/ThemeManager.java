@@ -4,7 +4,10 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.res.ColorStateList;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
@@ -17,6 +20,8 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
+
+import androidx.palette.graphics.Palette;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -90,14 +95,7 @@ public class ThemeManager {
                 ((TextView) view).setTextColor(colors.get("accent_text"));
             } else if ("dynamic_text".equals(tag)) {
                 // get background color
-                int backgroundColor = getBackgroundColor(view);
-
-                if (backgroundColor < 0) {
-                    // background color not found - default to white
-                    Log.d("ThemeManager", "background color not found");
-
-                    ((TextView) view).setTextColor(Color.WHITE);
-                } else {
+                getBackgroundColor(view, backgroundColor -> {
                     // compute brightness of background color
                     double luminance = (0.299 * Color.red(backgroundColor) +
                             0.587 * Color.green(backgroundColor) +
@@ -109,7 +107,7 @@ public class ThemeManager {
                     } else {
                         ((TextView) view).setTextColor(Color.WHITE);
                     }
-                }
+                });
             }
         }
 
@@ -176,29 +174,65 @@ public class ThemeManager {
     }
 
     // find background color of a textview
-    private int getBackgroundColor(View view) {
+    private void getBackgroundColor(View view, BackgroundColorCallback callback) {
         // check for background in this view
         Drawable background = view.getBackground();
 
         if (background != null) { // background found, get color
-            if (background instanceof GradientDrawable) {
-                // use accent color as background
-
-                return -1; // temp
-            }
-            // assume color is readable
-            return ((ColorDrawable) background).getColor();
+            // get dominant background color
+            getDominantColorFromDrawable(background, color -> {
+                callback.onColorReady(color);
+            });
+            return;
         }
 
         // no background found - check parent view
         View parentView = (View) view.getParent();
 
         if (parentView != null) {
-            return getBackgroundColor(parentView);
+            getBackgroundColor(parentView, callback);
+            return;
         }
 
-        // default to failure
-        return -1;
+        // default to black
+        callback.onColorReady(Color.BLACK);
+    }
+
+    public interface BackgroundColorCallback {
+        void onColorReady(int color);
+    }
+
+    public static Bitmap drawableToBitmap(Drawable drawable) {
+        // make a safe copy of the drawable so the original is not modified
+        Drawable copy = drawable.getConstantState() != null
+                ? drawable.getConstantState().newDrawable().mutate()
+                : drawable.mutate();
+
+        int width = copy.getIntrinsicWidth() > 0 ? copy.getIntrinsicWidth() : 100;
+        int height = copy.getIntrinsicHeight() > 0 ? copy.getIntrinsicHeight() : 100;
+
+        Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bitmap);
+
+        copy.setBounds(0, 0, canvas.getWidth(), canvas.getHeight());
+        copy.draw(canvas);
+
+        return bitmap;
+    }
+
+
+    public static void getDominantColorFromDrawable(Drawable drawable, DominantColorCallback callback) {
+        Bitmap bitmap = drawableToBitmap(drawable);
+
+        Palette.from(bitmap).generate(palette -> {
+            int defaultColor = Color.BLACK; // fallback if palette fails
+            int dominant = palette.getDominantColor(defaultColor);
+            callback.onColorExtracted(dominant);
+        });
+    }
+
+    public interface DominantColorCallback {
+        void onColorExtracted(int color);
     }
 
     // Save theme colors to SharedPreferences
