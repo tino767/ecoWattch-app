@@ -17,6 +17,16 @@ import android.widget.ImageView;
 import android.widget.Button;
 import android.widget.TextView;
 import android.content.SharedPreferences;
+import android.widget.Toast;
+import org.json.JSONObject;
+import org.json.JSONException;
+import com.android.volley.Request;
+import com.android.volley.toolbox.JsonObjectRequest;
+import com.android.volley.toolbox.Volley;
+import java.util.Calendar;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 // Willow API imports
 import com.example.ecowattchtechdemo.willow.WillowEnergyDataManager;
@@ -24,6 +34,7 @@ import com.example.ecowattchtechdemo.willow.WillowApiV3Config;
 import com.example.ecowattchtechdemo.willow.models.EnergyDataResponse;
 import com.example.ecowattchtechdemo.gamification.EnergyCheckScheduler;
 import com.example.ecowattchtechdemo.gamification.GamificationTester;
+import com.example.ecowattchtechdemo.gamification.DormPointsManager;
 
 public class DashboardActivity extends AppCompatActivity {
     private static final String TAG = "DashboardActivity";
@@ -33,10 +44,16 @@ public class DashboardActivity extends AppCompatActivity {
     private Handler updateHandler;
     private Random random;
     private DecimalFormat decimalFormat;
+    private DormPointsManager dormPointsManager;
     
-    // Live data configuration
+    // Backend sync system for daily 10pm updates
+    private ScheduledExecutorService syncScheduler;
+    private static final String BACKEND_URL = "http://10.0.2.2:3000/dorm_points";
+    private static final int MAX_RETRY_ATTEMPTS = 3;
+    
+    // Single dorm configuration for user's actual dorm
     private String currentDormName = "TINSLEY";
-    private static final long UPDATE_INTERVAL = 10000; // 10 seconds
+    // Removed constant refresh for production app
     
     // Dorm data for rotation
     private String[] dormNames = {"TINSLEY", "GABALDON", "SECHRIST"};
@@ -69,7 +86,8 @@ public class DashboardActivity extends AppCompatActivity {
     ImageView thresholdIndicator;
 
     // Meter configuration
-    private static final int MAX_USAGE = 600; // 600kw max
+    private static final int MAX_USAGE = 600; // 600kw max for current usage
+    private static final double MAX_DAILY_ENERGY = 15000.0; // 15,000 kWh max daily energy for dorm
     private static final int MIN_USAGE = 0;   // 0kw min
     private int currentUsage = 0;  // Initial value, updated by live data
     private int thresholdValue = 300; // Threshold at 300kw
@@ -86,7 +104,8 @@ public class DashboardActivity extends AppCompatActivity {
         setupNavigationButtons();
         setupModalComponents();
         setupFragment(savedInstanceState);
-        startLiveDataUpdates();
+        loadUserDormDataOnce(); // Load data once for user's dorm
+        scheduleDailyBackendSync(); // Schedule 10pm daily sync with backend
 
         // initialize themeManager
         tm = new ThemeManager(this);
@@ -101,6 +120,7 @@ public class DashboardActivity extends AppCompatActivity {
         updateHandler = new Handler(Looper.getMainLooper());
         random = new Random();
         decimalFormat = new DecimalFormat("#,##0");
+        dormPointsManager = new DormPointsManager(this);
         
         // Validate BuildConfig environment variables
         Log.d(TAG, "🔐 Environment Variables Status:");
@@ -244,6 +264,36 @@ public class DashboardActivity extends AppCompatActivity {
         } catch (Exception e) {
             Log.e(TAG, "Error during daily check-in process", e);
         }
+    }
+    
+    /**
+     * Load data once for user's dorm (no constant refresh)
+     */
+    private void loadUserDormDataOnce() {
+        // Get user's dorm from shared preferences
+        SharedPreferences prefs = getSharedPreferences("MyAppPrefs", MODE_PRIVATE);
+        String userDorm = prefs.getString("Dormitory", "TINSLEY").toUpperCase();
+        
+        // Validate and set user's dorm
+        for (int i = 0; i < dormNames.length; i++) {
+            if (dormNames[i].equals(userDorm)) {
+                currentDormName = userDorm;
+                currentDormIndex = i;
+                break;
+            }
+        }
+        
+        Log.d(TAG, "Loading data once for user's dorm: " + currentDormName);
+        
+        // Load data once after fragment is ready
+        updateHandler.postDelayed(() -> {
+            if (dashContentFragment != null && dashContentFragment.isAdded()) {
+                // Use existing update method but only call it once
+                updateUIWithLiveData();
+            } else {
+                updateHandler.postDelayed(() -> updateUIWithLiveData(), 500);
+            }
+        }, 200);
     }
     
     private void setupNavigationButtons() {
@@ -781,19 +831,33 @@ public class DashboardActivity extends AppCompatActivity {
 
         // Initialize meter with default value
         meterFill.post(() -> {
-            updateMeter(currentUsage, thresholdValue);
+            updateMeterWithDailyData();
         });
     }
 
     /**
-     * Updates the energy meter display
-     * @param usage Current energy usage in kw (0-400)
-     * @param threshold Threshold value in kw
+     * Helper method to update meter with daily energy data for gamification
      */
-    private void updateMeter(int usage, int threshold) {
-        // Calculate meter fill height as percentage
-        float usagePercentage = ((float) usage / MAX_USAGE);
-        float thresholdPercentage = ((float) threshold / MAX_USAGE);
+    private void updateMeterWithDailyData() {
+        // Get today's and yesterday's energy usage for current user's dorm
+        double todayEnergy = dormPointsManager.getTodayEnergyUsage(currentDormName);
+        double yesterdayEnergy = dormPointsManager.getYesterdayEnergyUsage(currentDormName);
+        
+        Log.d(TAG, String.format("Updating meter for %s: Today=%.2f kWh, Yesterday=%.2f kWh", 
+                currentDormName, todayEnergy, yesterdayEnergy));
+        
+        updateMeter(todayEnergy, yesterdayEnergy);
+    }
+
+    /**
+     * Updates the energy meter display for gamification
+     * @param todayEnergyKWh Today's total energy usage in kWh
+     * @param yesterdayEnergyKWh Yesterday's total energy usage in kWh (triangle target)
+     */
+    private void updateMeter(double todayEnergyKWh, double yesterdayEnergyKWh) {
+        // Calculate meter fill height as percentage of today's energy vs max daily
+        final float usagePercentage = Math.max(0, Math.min(1, (float) (todayEnergyKWh / MAX_DAILY_ENERGY)));
+        final float thresholdPercentage = Math.max(0, Math.min(1, (float) (yesterdayEnergyKWh / MAX_DAILY_ENERGY)));
 
         // Update meter fill height
         meterFill.post(() -> {
@@ -803,9 +867,9 @@ public class DashboardActivity extends AppCompatActivity {
             params.height = (int) (meterHeight * usagePercentage);
             meterFill.setLayoutParams(params);
 
-            // Update meter color based on usage (green to red gradient)
-            // Use drawable background to maintain rounded corners
-            int color = getMeterColor(usagePercentage);
+            // Update meter color based on gamification logic
+            // Green when today < yesterday (beating target), red when today > yesterday
+            int color = getGamificationMeterColor(todayEnergyKWh, yesterdayEnergyKWh);
             android.graphics.drawable.GradientDrawable drawable =
                 (android.graphics.drawable.GradientDrawable)
                 getResources().getDrawable(R.drawable.meter_fill_shape, null).mutate();
@@ -827,6 +891,30 @@ public class DashboardActivity extends AppCompatActivity {
             params.topMargin = 0;
             thresholdIndicator.setLayoutParams(params);
         });
+    }
+
+    /**
+     * Calculate meter color based on gamification logic
+     * Green when today's usage is less than yesterday's (winning)
+     * Red when today's usage is more than yesterday's (losing)
+     */
+    private int getGamificationMeterColor(double todayEnergyKWh, double yesterdayEnergyKWh) {
+        if (yesterdayEnergyKWh == 0.0) {
+            // No yesterday data, use neutral blue
+            return Color.rgb(100, 150, 255);
+        }
+        
+        if (todayEnergyKWh <= yesterdayEnergyKWh) {
+            // Winning - Green (various shades based on how much under)
+            float ratio = Math.min(1.0f, (float)(yesterdayEnergyKWh - todayEnergyKWh) / (float)yesterdayEnergyKWh);
+            int green = 180 + (int)(ratio * 75); // 180-255 range
+            return Color.rgb(50, green, 50);
+        } else {
+            // Losing - Red (various shades based on how much over)
+            float ratio = Math.min(1.0f, (float)(todayEnergyKWh - yesterdayEnergyKWh) / (float)yesterdayEnergyKWh);
+            int red = 180 + (int)(ratio * 75); // 180-255 range
+            return Color.rgb(red, 50, 50);
+        }
     }
 
     /**
@@ -852,10 +940,10 @@ public class DashboardActivity extends AppCompatActivity {
     }
 
     /**
-     * Start the live data update cycle
+     * Start the data loading (single load, no continuous updates)
      */
     private void startLiveDataUpdates() {
-        Log.d(TAG, "Starting live data updates with " + UPDATE_INTERVAL + "ms interval");
+        Log.d(TAG, "Loading data once for user's dorm (no auto-refresh)");
         
         // Show initial data immediately
         updateHandler.post(() -> {
@@ -867,33 +955,21 @@ public class DashboardActivity extends AppCompatActivity {
             }
         });
         
-        // Schedule recurring updates
-        scheduleNextUpdate();
+        // No recurring updates for production app
     }
     
     /**
-     * Schedule the next data update
-     */
-    private void scheduleNextUpdate() {
-        updateHandler.postDelayed(() -> {
-            updateUIWithLiveData();
-            scheduleNextUpdate(); // Schedule the next update
-        }, UPDATE_INTERVAL);
-    }
-    
-    /**
-     * Update UI with fresh live data (real or simulated)
+     * Update UI with fresh data (real or simulated) - called once for user's dorm
      */
     private void updateUIWithLiveData() {
         if (dashContentFragment == null || !dashContentFragment.isAdded()) {
-            Log.w(TAG, "Fragment not ready for live data update - retrying in 1 second");
+            Log.w(TAG, "Fragment not ready for data update - retrying in 1 second");
             // Retry after a short delay
             updateHandler.postDelayed(() -> updateUIWithLiveData(), 1000);
             return;
         }
 
-        // Rotate through dorms every few updates
-        rotateDorm();
+        // No dorm rotation - stick with user's dorm
 
         if (useRealData && isWillowAuthenticated) {
             // Fetch real data from Willow API
@@ -946,13 +1022,11 @@ public class DashboardActivity extends AppCompatActivity {
         // Update current usage (main display)
         dashContentFragment.updateCurrentUsage(liveUsage + "kW");
         
-        // Update the energy meter with real usage
-        updateMeter(liveUsage, thresholdValue);
+        // Update the energy meter with daily data for gamification
+        updateMeterWithDailyData();
         
-        // 🎮 Update dorm status with DYNAMIC position based on points
-        String position = energyDataManager.getBuildingPosition(data.getBuildingName());
-        String statusText = data.getBuildingName() + " - " + (position != null ? position : "LIVE DATA");
-        dashContentFragment.updateDormStatus(statusText);
+        // Update dorm status with just the dorm name
+        dashContentFragment.updateDormStatus(data.getBuildingName());
         
         // 🎮 Use POTENTIAL ENERGY POINTS from gamification system
         int potentialEnergyPoints = energyDataManager.getDormPotentialEnergy(data.getBuildingName());
@@ -976,7 +1050,7 @@ public class DashboardActivity extends AppCompatActivity {
         
         dashContentFragment.updateYesterdaysTotal(dailyTotalText);
         
-        Log.d(TAG, "✅ Real data update completed successfully - Next update in " + (UPDATE_INTERVAL/1000) + " seconds");
+        Log.d(TAG, "✅ Real data loaded successfully for user's dorm");
     }
     
     /**
@@ -995,13 +1069,11 @@ public class DashboardActivity extends AppCompatActivity {
         // Update current usage (main display)
         dashContentFragment.updateCurrentUsage(liveUsage + "kW");
 
-        // Update the energy meter with new usage
-        updateMeter(liveUsage, thresholdValue);
+        // Update the energy meter with daily data for gamification
+        updateMeterWithDailyData();
 
-        // 🎮 Update dorm status with DYNAMIC position based on points
-        String position = energyDataManager.getBuildingPosition(currentDormName);
-        String statusText = currentDormName + " - " + (position != null ? position : dormPositions[currentDormIndex]);
-        dashContentFragment.updateDormStatus(statusText);
+        // Update dorm status with just the dorm name
+        dashContentFragment.updateDormStatus(currentDormName);
 
         // 🎮 Use POTENTIAL ENERGY POINTS from gamification system
         int potentialEnergyPoints = energyDataManager.getDormPotentialEnergy(currentDormName);
@@ -1019,7 +1091,7 @@ public class DashboardActivity extends AppCompatActivity {
         
         dashContentFragment.updateYesterdaysTotal(dailyTotalText);
 
-        Log.d(TAG, "✅ Simulated data update completed successfully - Next update in " + (UPDATE_INTERVAL/1000) + " seconds");
+        Log.d(TAG, "✅ Simulated data loaded successfully for user's dorm");
     }
     
     /**
@@ -1047,19 +1119,11 @@ public class DashboardActivity extends AppCompatActivity {
     }
     
     /**
-     * Manual refresh - switches to next dorm and updates data immediately
+     * Manual refresh - DISABLED for production (kept for compatibility)
      */
     public void manualRefresh() {
-        Log.d(TAG, "Manual refresh requested");
-        
-        // Switch to next dorm
-        currentDormIndex = (currentDormIndex + 1) % dormNames.length;
-        currentDormName = dormNames[currentDormIndex];
-        
-        // Update UI immediately
-        updateUIWithLiveData();
-        
-        Log.d(TAG, "Manual refresh completed - switched to: " + currentDormName);
+        Log.d(TAG, "Manual refresh requested but disabled for production");
+        // No action taken - refresh functionality removed for production
     }
     
     /**
@@ -1125,6 +1189,135 @@ public class DashboardActivity extends AppCompatActivity {
         if (updateHandler != null) {
             updateHandler.removeCallbacksAndMessages(null);
         }
+        // Clean up sync scheduler
+        if (syncScheduler != null && !syncScheduler.isShutdown()) {
+            syncScheduler.shutdown();
+        }
         Log.d(TAG, "Live data updates stopped");
+    }
+
+    /**
+     * Schedule daily backend sync at 10pm
+     */
+    private void scheduleDailyBackendSync() {
+        syncScheduler = Executors.newSingleThreadScheduledExecutor();
+        
+        // Calculate time until next 10pm
+        Calendar now = Calendar.getInstance();
+        Calendar next10pm = Calendar.getInstance();
+        next10pm.set(Calendar.HOUR_OF_DAY, 22); // 10pm
+        next10pm.set(Calendar.MINUTE, 0);
+        next10pm.set(Calendar.SECOND, 0);
+        next10pm.set(Calendar.MILLISECOND, 0);
+        
+        // If it's already past 10pm today, schedule for tomorrow
+        if (now.after(next10pm)) {
+            next10pm.add(Calendar.DAY_OF_MONTH, 1);
+        }
+        
+        long initialDelay = next10pm.getTimeInMillis() - now.getTimeInMillis();
+        long dailyInterval = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+        
+        syncScheduler.scheduleAtFixedRate(() -> {
+            syncPointsToBackend(1); // Start with retry attempt 1
+        }, initialDelay, dailyInterval, TimeUnit.MILLISECONDS);
+        
+        Log.d(TAG, "📅 Daily backend sync scheduled for 10pm (next sync in " + (initialDelay / 1000 / 60) + " minutes)");
+    }
+
+    /**
+     * Sync both individual user points and dorm points to Collin's backend
+     */
+    private void syncPointsToBackend(int attemptNumber) {
+        if (attemptNumber > MAX_RETRY_ATTEMPTS) {
+            Log.e(TAG, "❌ Backend sync failed after " + MAX_RETRY_ATTEMPTS + " attempts");
+            return;
+        }
+
+        Log.d(TAG, "🔄 Syncing points to backend (attempt " + attemptNumber + "/" + MAX_RETRY_ATTEMPTS + ")");
+        
+        // Get real dorm point totals from DormPointsManager
+        int tinsleyPoints = dormPointsManager.getDormTotalPoints("TINSLEY");
+        int gabaldonPoints = dormPointsManager.getDormTotalPoints("GABALDON");
+        int sechristPoints = dormPointsManager.getDormTotalPoints("SECHRIST");
+        
+        // Get individual user points
+        int userSpendablePoints = dormPointsManager.getIndividualSpendablePoints();
+        
+        // Get user's dorm from SharedPreferences
+        SharedPreferences prefs = getSharedPreferences("MyAppPrefs", MODE_PRIVATE);
+        String userDorm = prefs.getString("Dormitory", "TINSLEY").toUpperCase();
+        String userName = prefs.getString("Username", "Unknown");
+        
+        // Create JSON payload with REAL DATA ONLY
+        JSONObject jsonBody = new JSONObject();
+        try {
+            // Dorm totals
+            jsonBody.put("Tinsley_total_points", tinsleyPoints);
+            jsonBody.put("Gabaldon_total_points", gabaldonPoints);
+            jsonBody.put("Sechrist_total_points", sechristPoints);
+            
+            // Individual user data
+            jsonBody.put("user_name", userName);
+            jsonBody.put("user_dorm", userDorm);
+            jsonBody.put("user_spendable_points", userSpendablePoints);
+            jsonBody.put("sync_timestamp", System.currentTimeMillis());
+            
+        } catch (JSONException e) {
+            Log.e(TAG, "❌ Failed to create JSON payload: " + e.getMessage());
+            return;
+        }
+
+        // Log what we're sending (REAL data)
+        Log.d(TAG, "📊 Syncing REAL data - Tinsley: " + tinsleyPoints + ", Gabaldon: " + gabaldonPoints + 
+                ", Sechrist: " + sechristPoints + ", User: " + userName + " (" + userDorm + ") with " + 
+                userSpendablePoints + " spendable points");
+
+        // Send request with retry logic
+        JsonObjectRequest request = new JsonObjectRequest(Request.Method.POST, BACKEND_URL, jsonBody,
+                response -> {
+                    Log.d(TAG, "✅ Points successfully synced to backend");
+                    runOnUiThread(() -> {
+                        Toast.makeText(this, "Points synced to backend", Toast.LENGTH_SHORT).show();
+                    });
+                },
+                error -> {
+                    String tempErrorMsg = "Backend sync failed";
+                    if (error.networkResponse != null && error.networkResponse.data != null) {
+                        try {
+                            String responseBody = new String(error.networkResponse.data, "utf-8");
+                            JSONObject data = new JSONObject(responseBody);
+                            tempErrorMsg = data.optString("message", tempErrorMsg);
+                        } catch (Exception e) {
+                            // fallback to default errorMsg
+                        }
+                    }
+                    
+                    final String finalErrorMsg = tempErrorMsg;
+                    Log.w(TAG, "⚠️ Backend sync attempt " + attemptNumber + " failed: " + finalErrorMsg);
+                    
+                    // Retry logic
+                    if (attemptNumber < MAX_RETRY_ATTEMPTS) {
+                        Log.d(TAG, "🔄 Retrying sync in 30 seconds...");
+                        new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                            syncPointsToBackend(attemptNumber + 1);
+                        }, 30000); // Retry after 30 seconds
+                    } else {
+                        runOnUiThread(() -> {
+                            Toast.makeText(this, "Backend sync failed: " + finalErrorMsg, Toast.LENGTH_LONG).show();
+                        });
+                    }
+                }
+        );
+
+        Volley.newRequestQueue(this).add(request);
+    }
+
+    /**
+     * Manual sync trigger for immediate testing (can be called from UI or debugging)
+     */
+    public void triggerManualSync() {
+        Log.d(TAG, "🔄 Manual sync triggered");
+        syncPointsToBackend(1);
     }
 }
