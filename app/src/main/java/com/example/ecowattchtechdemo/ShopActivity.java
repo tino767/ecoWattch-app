@@ -9,15 +9,27 @@ import android.os.Bundle;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
+import android.util.Log;
 import android.widget.TextView;
 import android.view.View;
+import android.widget.Toast;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import com.example.ecowattchtechdemo.gamification.DormPointsManager;
 
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+import com.example.ecowattchtechdemo.ApiResponse;
+import com.example.ecowattchtechdemo.willow.models.Palette;
+import com.google.gson.Gson;
+
 public class ShopActivity extends AppCompatActivity {
+    private static final String TAG = "ShopActivity";
     TextView backButton;
     TextView tabPallets, tabOwned, tabMore;
     RecyclerView palletsRecycler, ownedRecycler;
@@ -33,10 +45,11 @@ public class ShopActivity extends AppCompatActivity {
     // theme manager
     private ThemeManager tm;
 
+
     // TEST PALETTE VALUES
     // Format: [primary, secondary, accent, background_main, background_light, gradient_start, gradient_end]
     // Indices 5 & 6 are the gradient colors that match the big UI circle gradients
-    private final Map<String, String[]> paletteColors = new HashMap<String, String[]>() {{
+    private Map<String, String[]> paletteColors = new HashMap<String, String[]>() {{
         put("PEACH", new String[]{"#FFFFFF", "#AAAAAA", "#CD232E", "#1B1B1B", "#262626", "#FFFFFF", "#CD232E"});
         put("BLUE", new String[]{"#060606", "#1B1B1B", "#1956DB", "#BCBCBC", "#7D7D7D", "#A5C9FF", "#1956DB"});
         put("GREEN", new String[]{"#FFFFFF", "#AAAAAA", "#19BD53", "#38916A", "#262626", "#C8F5D8", "#19BD53"});
@@ -46,6 +59,7 @@ public class ShopActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_shop);
 
@@ -82,17 +96,15 @@ public class ShopActivity extends AppCompatActivity {
             }
         });
 
-        // Initialize sample data (BACKEND YOU REPLACE DATA HERE)
-        initializeSampleData();
-
-        // Setup RecyclerViews with horizontal scrolling
-        setupRecyclerViews();
-
-        // Setup tab click listeners
-        setupTabs();
-
         // initialize ThemeManager
         tm = new ThemeManager(this);
+
+        // Fetch palettes from API
+        fetchPalettesFromApiAndInit();
+
+        initializeSampleData();
+        setupRecyclerViews();
+        setupTabs();
     }
 
     protected void onStart() {
@@ -270,6 +282,60 @@ public class ShopActivity extends AppCompatActivity {
 
         // Set selected tab to bold (preserving custom font)
         selectedTab.setTypeface(matrixFont, Typeface.BOLD);
+    }
+
+    // ---fetch palettes from API and then initialize UI ---
+    private void fetchPalettesFromApiAndInit() {
+        ApiService api = ApiClient.getClient().create(ApiService.class);
+        Call<ApiResponse> call = api.getPalettes();
+        call.enqueue(new Callback<ApiResponse>() {
+            @Override
+            public void onResponse(Call<ApiResponse> call, Response<ApiResponse> response) {
+                Log.d(TAG, "Palettes request URL: " + call.request().url());
+                if (response.isSuccessful() && response.body() != null) {
+                    Log.d(TAG, "Palettes response body: " + new Gson().toJson(response.body()));
+                } else {
+                    Log.w(TAG, "Palettes response unsuccessful. code=" + response.code()
+                            + " error=" + (response.errorBody() != null ? response.errorBody().toString() : "null"));
+                }
+
+                if (response.isSuccessful() && response.body() != null && "success".equalsIgnoreCase(response.body().status)) {
+                    if (response.body().palettes != null) {
+                        for (Palette p : response.body().palettes) {
+                            if (p == null || p.offeringName == null) continue;
+
+                            // Trim and normalize the offering name so it matches your keys
+                            String key = p.offeringName.trim().toUpperCase();
+                            if (key.isEmpty()) continue;
+
+                            String[] arr = new String[]{
+                                    safeHex(p.colorHex1),
+                                    safeHex(p.colorHex2),
+                                    safeHex(p.colorHex3),
+                                    safeHex(p.colorHex4),
+                                    safeHex(p.colorHex5),
+                                    safeHex(p.colorHex6),
+                                    safeHex(p.colorHex7)
+                            };
+
+                            paletteColors.put(key, arr);
+                            Log.d(TAG, "Updated paletteColors[" + key + "] = " + java.util.Arrays.toString(arr));
+                        }
+                    }
+                } else {
+                    Log.w(TAG, "Palettes API response unsuccessful or empty");
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ApiResponse> call, Throwable t) {
+                Log.w(TAG, "Failed to fetch palettes: " + t.getMessage());
+            }
+        });
+    }
+
+    private String safeHex(String hex) {
+        return (hex != null && !hex.isEmpty()) ? hex : "#000000";
     }
 
 }

@@ -131,5 +131,22 @@ app.post("/dorm_points", async (req, res) => {
 });
 
 // ------------------------------
+// GET ALL PALETTES endpoint
+// ------------------------------
+app.get("/palettes", async (req, res) => {
+  try {
+    const [rows] = await pool.query(`
+      SELECT OfferingName, ColorHex1, ColorHex2, ColorHex3, ColorHex4, ColorHex5, ColorHex6, ColorHex7
+      FROM offerings;
+    `);
+
+    res.json({ status: "success", palettes: rows });
+  } catch (error) {
+    console.error("Error fetching palettes:", error);
+    res.status(500).json({ status: "error", message: "Failed to fetch palettes" });
+  }
+});
+
+// ------------------------------
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`✅ API running on port ${PORT}`));
