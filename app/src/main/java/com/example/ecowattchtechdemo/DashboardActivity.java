@@ -32,6 +32,7 @@ import com.example.ecowattchtechdemo.gamification.GamificationTester;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+
 public class DashboardActivity extends AppCompatActivity {
     private static final String TAG = "DashboardActivity";
     
@@ -1051,6 +1052,9 @@ public class DashboardActivity extends AppCompatActivity {
             currentDormName = dormNames[currentDormIndex];
             Log.d(TAG, "🏠 Rotated to dorm: " + currentDormName + " (Index: " + currentDormIndex + ")");
         }
+
+        //test notification
+        Notifications.sendNotification(DashboardActivity.this, "Title", "Message");
 
         /*
         AVNISH, this is where the where I put my code for the dorm points.
