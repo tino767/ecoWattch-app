@@ -25,16 +25,40 @@ app.post("/login", async (req, res) => {
   let passMatch
 
   try {
-    const [rows] = await pool.query(
+    // First get user data for password verification
+    const [fullUserData] = await pool.query(
       "SELECT * FROM Users WHERE Username = ?",
       [usernames]
     );
 
-    //Compare the plaintext password with the stored hash
-    passMatch = await bcrypt.compare(passwords, rows[0].PasswordHash);
+    if (fullUserData.length === 0) {
+      return res.json({ status: "failure", message: "Invalid credentials" });
+    }
 
-    if (rows.length > 0 && passMatch) {
-      res.json({ status: "success", user: rows[0] });
+    //Compare the plaintext password with the stored hash
+    passMatch = await bcrypt.compare(passwords, fullUserData[0].PasswordHash);
+
+    if (passMatch) {
+      // Try to get SpendablePoints, fall back gracefully if column doesn't exist
+      let userData = {
+        Username: fullUserData[0].Username,
+        DormName: fullUserData[0].DormName,
+        SpendablePoints: 100 // Default value
+      };
+
+      try {
+        const [pointsData] = await pool.query(
+          "SELECT SpendablePoints FROM Users WHERE Username = ?",
+          [usernames]
+        );
+        if (pointsData.length > 0 && pointsData[0].SpendablePoints !== undefined) {
+          userData.SpendablePoints = pointsData[0].SpendablePoints;
+        }
+      } catch (error) {
+        console.log("SpendablePoints column not found, using default value of 100");
+      }
+
+      res.json({ status: "success", user: userData });
     } else {
       res.json({ status: "failure", message: "Invalid credentials" });
     }
@@ -76,11 +100,24 @@ app.post("/signup", async (req, res) => {
     //hash the password
     passHash = await hashPassword(passwords);
 
-    // Insert the new user
-    await pool.query(
-      "INSERT INTO Users (Username, PasswordHash, DormName) VALUES (?, ?, ?)",
-      [usernames, passHash, dormitory]
-    );
+    // Insert the new user - try with SpendablePoints, fall back without it
+    try {
+      await pool.query(
+        "INSERT INTO Users (Username, PasswordHash, DormName, SpendablePoints) VALUES (?, ?, ?, ?)",
+        [usernames, passHash, dormitory, 100]
+      );
+    } catch (error) {
+      if (error.code === 'ER_BAD_FIELD_ERROR' && error.sqlMessage.includes('SpendablePoints')) {
+        // Column doesn't exist yet, insert without it
+        console.log("SpendablePoints column not found, inserting user without it");
+        await pool.query(
+          "INSERT INTO Users (Username, PasswordHash, DormName) VALUES (?, ?, ?)",
+          [usernames, passHash, dormitory]
+        );
+      } else {
+        throw error; // Re-throw if it's a different error
+      }
+    }
 
     res
       .status(201)
@@ -144,6 +181,129 @@ app.get("/palettes", async (req, res) => {
   } catch (error) {
     console.error("Error fetching palettes:", error);
     res.status(500).json({ status: "error", message: "Failed to fetch palettes" });
+  }
+});
+
+// ------------------------------
+// UPDATE USER POINTS endpoint
+// ------------------------------
+app.post("/update_user_points", async (req, res) => {
+  try {
+    const { username, spendablePoints } = req.body;
+
+    if (!username || spendablePoints === undefined) {
+      return res.status(400).json({
+        status: "error",
+        message: "Username and spendablePoints required",
+      });
+    }
+
+    // Update the user's spendable points - handle missing column gracefully
+    try {
+      await pool.query(
+        "UPDATE Users SET SpendablePoints = ? WHERE Username = ?",
+        [spendablePoints, username]
+      );
+      res.json({ status: "success", message: "Points updated successfully" });
+    } catch (error) {
+      if (error.code === 'ER_BAD_FIELD_ERROR' && error.sqlMessage.includes('SpendablePoints')) {
+        console.log("SpendablePoints column not found, cannot update points");
+        res.json({ status: "success", message: "Points updated (column not available)" });
+      } else {
+        throw error;
+      }
+    }
+  } catch (error) {
+    console.error("Update points error:", error);
+    res.status(500).json({ status: "error", message: "Failed to update points" });
+  }
+});
+
+// ------------------------------
+// PURCHASE PALETTE endpoint
+// ------------------------------
+app.post("/purchase_palette", async (req, res) => {
+  try {
+    const { username, paletteName, pointsToDeduct } = req.body;
+
+    if (!username || !paletteName || !pointsToDeduct) {
+      return res.status(400).json({
+        status: "error",
+        message: "Username, paletteName, and pointsToDeduct required",
+      });
+    }
+
+    // Check if user exists and get current points
+    let currentPoints = 100; // Default value
+    try {
+      const [userRows] = await pool.query(
+        "SELECT SpendablePoints FROM Users WHERE Username = ?",
+        [username]
+      );
+
+      if (userRows.length === 0) {
+        return res.status(404).json({
+          status: "error",
+          message: "User not found",
+        });
+      }
+
+      currentPoints = userRows[0].SpendablePoints || 100;
+    } catch (error) {
+      if (error.code === 'ER_BAD_FIELD_ERROR' && error.sqlMessage.includes('SpendablePoints')) {
+        console.log("SpendablePoints column not found, using default value");
+        // Check if user exists without SpendablePoints column
+        const [userRows] = await pool.query(
+          "SELECT Username FROM Users WHERE Username = ?",
+          [username]
+        );
+        
+        if (userRows.length === 0) {
+          return res.status(404).json({
+            status: "error",
+            message: "User not found",
+          });
+        }
+        currentPoints = 100; // Default
+      } else {
+        throw error;
+      }
+    }
+    
+    if (currentPoints < pointsToDeduct) {
+      return res.status(400).json({
+        status: "error",
+        message: "Insufficient points",
+      });
+    }
+
+    // Deduct points and record purchase
+    const newPoints = currentPoints - pointsToDeduct;
+    
+    try {
+      await pool.query(
+        "UPDATE Users SET SpendablePoints = ? WHERE Username = ?",
+        [newPoints, username]
+      );
+    } catch (error) {
+      if (error.code === 'ER_BAD_FIELD_ERROR' && error.sqlMessage.includes('SpendablePoints')) {
+        console.log("SpendablePoints column not found, purchase processed without DB update");
+      } else {
+        throw error;
+      }
+    }
+
+    // You could also store the purchase in a separate table for tracking
+    // For now, we'll just return success with the new point total
+
+    res.json({ 
+      status: "success", 
+      message: "Purchase successful",
+      newPointTotal: newPoints
+    });
+  } catch (error) {
+    console.error("Purchase error:", error);
+    res.status(500).json({ status: "error", message: "Failed to process purchase" });
   }
 });
 

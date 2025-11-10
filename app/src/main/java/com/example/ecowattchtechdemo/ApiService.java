@@ -18,4 +18,10 @@ public interface ApiService {
 
     @GET("/palettes")
     Call<ApiResponse> getPalettes();
+
+    @POST("/update_user_points")
+    Call<ApiResponse> updateUserPoints(@Body UpdatePointsRequest request);
+
+    @POST("/purchase_palette")
+    Call<PurchaseResponse> purchasePalette(@Body PurchaseRequest request);
 }
