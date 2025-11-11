@@ -108,7 +108,7 @@
                     app:tint="@color/white" />
 
                 <TextView
-                    android:tag="primary_text"
+                    android:tag="dynamic_text"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:fontFamily="@font/matrixtype_display"
@@ -120,7 +120,7 @@
             </LinearLayout>
 
             <TextView
-                android:tag="primary_text"
+                android:tag="dynamic_text"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:background="@drawable/pill_background"
@@ -162,7 +162,7 @@
                     app:tint="@color/white" />
 
                 <TextView
-                    android:tag="primary_text"
+                    android:tag="dynamic_text"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:fontFamily="@font/matrixtype_display"
@@ -174,7 +174,7 @@
             </LinearLayout>
 
                 <TextView
-                    android:tag="primary_text"
+                    android:tag="dynamic_text"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:background="@drawable/pill_background"
@@ -283,7 +283,7 @@
 
                 <TextView
                     android:id="@+id/daily_tip_text"
-                    android:tag="primary_text"
+                    android:tag="dynamic_text"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="Loading tip..."
@@ -360,7 +360,7 @@
 
                     <TextView
                         android:id="@+id/checklist_item_1_text"
-                        android:tag="primary_text"
+                        android:tag="dynamic_text"
                         android:layout_width="wrap_content"
                         android:layout_height="match_parent"
                         android:fontFamily="@font/matrixtype_display"
@@ -397,7 +397,7 @@
 
                     <TextView
                         android:id="@+id/checklist_item_2_text"
-                        android:tag="primary_text"
+                        android:tag="dynamic_text"
                         android:layout_width="wrap_content"
                         android:layout_height="match_parent"
                         android:fontFamily="@font/matrixtype_display"
@@ -434,7 +434,7 @@
 
                     <TextView
                         android:id="@+id/checklist_item_3_text"
-                        android:tag="primary_text"
+                        android:tag="dynamic_text"
                         android:layout_width="wrap_content"
                         android:layout_height="match_parent"
                         android:fontFamily="@font/matrixtype_display"
@@ -485,7 +485,7 @@
                     android:layout_marginBottom="16dp">
 
                     <TextView
-                        android:tag="secondary_text"
+                        android:tag="dynamic_text"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Username"
@@ -496,7 +496,7 @@
 
                     <TextView
                         android:id="@+id/profile_username"
-                        android:tag="primary_text"
+                        android:tag="dynamic_text"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text="Guest"
@@ -514,7 +514,7 @@
                     android:layout_marginBottom="24dp">
 
                     <TextView
-                        android:tag="secondary_text"
+                        android:tag="dynamic_text"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Dormitory"
@@ -525,7 +525,7 @@
 
                     <TextView
                         android:id="@+id/profile_dorm"
-                        android:tag="primary_text"
+                        android:tag="dynamic_text"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text="Not Selected"
@@ -538,7 +538,7 @@
                 <!-- Logout Button -->
                 <TextView
                     android:id="@+id/profile_logout_button"
-                    android:tag="primary_text"
+                    android:tag="dynamic_text"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="Logout"

@@ -8,6 +8,9 @@ public class User {
     @SerializedName("DormName")
     private String DormName;
 
+    @SerializedName("SpendablePoints")
+    private Integer SpendablePoints;
+
     @SerializedName("Email")
     private String Email;
 
@@ -26,5 +29,9 @@ public class User {
 
     public String getDormName() {
         return DormName;
+    }
+
+    public Integer getSpendablePoints() {
+        return SpendablePoints != null ? SpendablePoints : 0;
     }
 }

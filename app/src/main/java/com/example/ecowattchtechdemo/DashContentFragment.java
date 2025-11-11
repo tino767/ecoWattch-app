@@ -63,7 +63,9 @@ public class DashContentFragment extends Fragment {
             });
         }
         
-        // Set up refresh button
+        // Refresh button removed from layout for production
+        /*
+        // Set up refresh button (if it exists)
         View refreshButton = view.findViewById(R.id.refresh_button);
         if (refreshButton != null) {
             refreshButton.setOnClickListener(v -> {
@@ -72,6 +74,7 @@ public class DashContentFragment extends Fragment {
                 }
             });
         }
+        */
     }
     
     /**

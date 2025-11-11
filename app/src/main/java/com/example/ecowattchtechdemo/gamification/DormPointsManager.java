@@ -120,6 +120,19 @@ public class DormPointsManager {
     }
     
     /**
+     * Initialize user points from login data
+     * @param loginSpendablePoints Points from backend login response
+     */
+    public void initializePointsFromLogin(int loginSpendablePoints) {
+        // Only set if we don't already have points stored locally, or if backend has more
+        int currentPoints = getIndividualSpendablePoints();
+        if (currentPoints == 0 || loginSpendablePoints > currentPoints) {
+            setIndividualSpendablePoints(loginSpendablePoints);
+            Log.d(TAG, "Initialized spendable points from login: " + loginSpendablePoints);
+        }
+    }
+    
+    /**
      * Add to individual spendable points (for daily check-ins)
      */
     public void addIndividualSpendablePoints(int pointsToAdd) {

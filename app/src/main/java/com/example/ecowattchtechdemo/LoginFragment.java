@@ -16,6 +16,7 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
 import com.google.android.material.textfield.TextInputEditText;
+import com.example.ecowattchtechdemo.gamification.DormPointsManager;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -60,6 +61,10 @@ public class LoginFragment extends Fragment {
                             editor.putString("Username", body.getUser().getUsername());
                             editor.putString("Dormitory", body.getUser().getDormName());
                             editor.apply();
+
+                            // Initialize user points from backend
+                            DormPointsManager pointsManager = new DormPointsManager(requireContext());
+                            pointsManager.initializePointsFromLogin(body.getUser().getSpendablePoints());
 
                             // go to dashboard
                             Intent intent = new Intent(requireContext(), DashboardActivity.class);

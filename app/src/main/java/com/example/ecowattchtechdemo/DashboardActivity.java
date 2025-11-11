@@ -17,13 +17,21 @@ import android.widget.ImageView;
 import android.widget.Button;
 import android.widget.TextView;
 import android.content.SharedPreferences;
+import android.widget.Toast;
 
 // Willow API imports
+import com.android.volley.Request;
+import com.android.volley.toolbox.JsonObjectRequest;
+import com.android.volley.toolbox.Volley;
 import com.example.ecowattchtechdemo.willow.WillowEnergyDataManager;
 import com.example.ecowattchtechdemo.willow.WillowApiV3Config;
 import com.example.ecowattchtechdemo.willow.models.EnergyDataResponse;
 import com.example.ecowattchtechdemo.gamification.EnergyCheckScheduler;
 import com.example.ecowattchtechdemo.gamification.GamificationTester;
+
+import org.json.JSONException;
+import org.json.JSONObject;
+
 
 public class DashboardActivity extends AppCompatActivity {
     private static final String TAG = "DashboardActivity";
@@ -36,7 +44,7 @@ public class DashboardActivity extends AppCompatActivity {
     
     // Live data configuration
     private String currentDormName = "TINSLEY";
-    private static final long UPDATE_INTERVAL = 10000; // 10 seconds
+    private static final long UPDATE_INTERVAL = 60000; // 1 minute instead of 10 seconds to reduce constant refresh
     
     // Dorm data for rotation
     private String[] dormNames = {"TINSLEY", "GABALDON", "SECHRIST"};
@@ -72,7 +80,7 @@ public class DashboardActivity extends AppCompatActivity {
     private static final int MAX_USAGE = 600; // 600kw max
     private static final int MIN_USAGE = 0;   // 0kw min
     private int currentUsage = 0;  // Initial value, updated by live data
-    private int thresholdValue = 300; // Threshold at 300kw
+    private int thresholdValue = 300; // Will be updated to yesterday's usage dynamically
 
     // theme manager
     private ThemeManager tm;
@@ -102,6 +110,21 @@ public class DashboardActivity extends AppCompatActivity {
         random = new Random();
         decimalFormat = new DecimalFormat("#,##0");
         
+        // Get user's dorm from SharedPreferences
+        SharedPreferences prefs = getSharedPreferences("MyAppPrefs", MODE_PRIVATE);
+        String userDorm = prefs.getString("Dormitory", "Tinsley"); // Default to Tinsley
+        
+        // Set current dorm to user's dorm and find its index
+        currentDormName = userDorm.toUpperCase();
+        for (int i = 0; i < dormNames.length; i++) {
+            if (dormNames[i].equals(currentDormName)) {
+                currentDormIndex = i;
+                break;
+            }
+        }
+        
+        Log.d(TAG, "🏠 User's dorm set to: " + currentDormName + " (Index: " + currentDormIndex + ")");
+        
         // Validate BuildConfig environment variables
         Log.d(TAG, "🔐 Environment Variables Status:");
         Log.d(TAG, "  - Willow Base URL: " + (BuildConfig.WILLOW_BASE_URL.isEmpty() ? "❌ Missing" : "✅ Loaded"));
@@ -118,8 +141,8 @@ public class DashboardActivity extends AppCompatActivity {
         // 🎮 Schedule daily energy check at 10 PM
         EnergyCheckScheduler.scheduleDailyEnergyCheck(this);
         
-        // 🎯 Handle daily check-in for +25 points per dorm
-        performDailyCheckin();
+        // 🎯 Daily check-in is now user-triggered through the UI checklist
+        // Removed automatic check-in that was happening on every app start
         
         Log.d(TAG, "Live data system initialized");
     }
@@ -197,8 +220,8 @@ public class DashboardActivity extends AppCompatActivity {
     }
     
     /**
-     * 🎯 Handle daily check-in system for +25 points per dorm
-     * Awards points for daily app usage (20 days = 1 palette = 500 points)
+     * 🎯 Handle daily check-in for the current user only
+     * This is now triggered by completing the daily checklist tasks
      */
     private void performDailyCheckin() {
         if (energyDataManager == null) {
@@ -206,38 +229,23 @@ public class DashboardActivity extends AppCompatActivity {
             return;
         }
         
-        // Get points manager from the energy data manager
         try {
-            // Use reflection or add a getter method to access pointsManager
-            // For now, we'll create our own instance
             com.example.ecowattchtechdemo.gamification.DormPointsManager pointsManager = 
                 new com.example.ecowattchtechdemo.gamification.DormPointsManager(this);
             
-            String[] dormNames = {"TINSLEY", "GABALDON", "SECHRIST"};
-            int totalCheckins = 0;
-            
-            for (String dormName : dormNames) {
-                boolean checkedIn = pointsManager.recordDailyCheckin(dormName);
-                if (checkedIn) {
-                    totalCheckins++;
-                    Log.d(TAG, "🎯 Daily check-in successful for " + dormName + ": +25 points");
-                } else {
-                    Log.d(TAG, "ℹ️ " + dormName + " already checked in today");
-                }
-            }
-            
-            if (totalCheckins > 0) {
-                Log.d(TAG, String.format("🎉 Daily check-in completed! %d dorms earned +25 SPENDABLE points each", totalCheckins));
+            // Only check-in for the current user's dorm, not all dorms
+            boolean checkedIn = pointsManager.recordDailyCheckin(currentDormName);
+            if (checkedIn) {
+                Log.d(TAG, "🎯 Daily check-in successful for " + currentDormName + ": +25 spendable points");
                 
-                // Show brief notification to user about check-in rewards
-                final int finalTotalCheckins = totalCheckins; // Make variable final for lambda
+                // Show success message to user
                 runOnUiThread(() -> {
-                    if (dashContentFragment != null && finalTotalCheckins > 0) {
-                        String message = finalTotalCheckins == 3 ? 
-                            "Daily Check-in Complete! All dorms earned +25 spendable points 💰" :
-                            finalTotalCheckins + " dorm(s) earned daily check-in spendable points 💰";
-                        // We can add a toast or update UI here if needed
-                    }
+                    Toast.makeText(this, "Daily check-in complete! +25 spendable points earned 💰", Toast.LENGTH_LONG).show();
+                });
+            } else {
+                Log.d(TAG, "ℹ️ " + currentDormName + " already checked in today");
+                runOnUiThread(() -> {
+                    Toast.makeText(this, "You've already checked in today!", Toast.LENGTH_SHORT).show();
                 });
             }
             
@@ -334,6 +342,9 @@ public class DashboardActivity extends AppCompatActivity {
         checklistItem2.setOnClickListener(v -> markItemComplete(2));
         checklistItem3.setOnClickListener(v -> markItemComplete(3));
 
+        // Load current checklist state
+        loadChecklistState();
+
         // Set up overlay click listener to close modal when clicking outside
         modalOverlay.setOnClickListener(v -> {
             // Only close if clicking directly on overlay (not on modal content)
@@ -341,6 +352,87 @@ public class DashboardActivity extends AppCompatActivity {
                 hideModal();
             }
         });
+    }
+
+    /**
+     * Load the current state of the daily checklist
+     */
+    private void loadChecklistState() {
+        SharedPreferences prefs = getSharedPreferences("DailyTasks", MODE_PRIVATE);
+        
+        // Check if we need to reset for a new day
+        String lastResetDate = prefs.getString("last_reset_date", "");
+        String today = java.text.DateFormat.getDateInstance().format(new java.util.Date());
+        
+        if (!today.equals(lastResetDate)) {
+            // New day - reset all tasks
+            SharedPreferences.Editor editor = prefs.edit();
+            editor.putBoolean("checklist_item_1", false);
+            editor.putBoolean("checklist_item_2", false);
+            editor.putBoolean("checklist_item_3", false);
+            editor.putBoolean("all_tasks", false);
+            editor.putString("last_reset_date", today);
+            editor.apply();
+            Log.d(TAG, "🔄 Daily checklist reset for new day: " + today);
+        }
+        
+        // Load current state and update UI
+        boolean task1Complete = prefs.getBoolean("checklist_item_1", false);
+        boolean task2Complete = prefs.getBoolean("checklist_item_2", false);
+        boolean task3Complete = prefs.getBoolean("checklist_item_3", false);
+        boolean allTasksComplete = prefs.getBoolean("all_tasks", false);
+        
+        // Update UI for task 1
+        if (task1Complete) {
+            ImageView taskIcon1 = findViewById(R.id.checklist_item_1_icon);
+            TextView taskText1 = findViewById(R.id.checklist_item_1_text);
+            if (taskIcon1 != null && taskText1 != null) {
+                taskIcon1.setImageResource(R.drawable.ic_checkmark);
+                taskIcon1.setTag("accent_color");
+                taskText1.setTag("secondary_text");
+            }
+        }
+        
+        // Update UI for task 2
+        if (task2Complete) {
+            ImageView taskIcon2 = findViewById(R.id.checklist_item_2_icon);
+            TextView taskText2 = findViewById(R.id.checklist_item_2_text);
+            if (taskIcon2 != null && taskText2 != null) {
+                taskIcon2.setImageResource(R.drawable.ic_checkmark);
+                taskIcon2.setTag("accent_color");
+                taskText2.setTag("secondary_text");
+            }
+        }
+        
+        // Update UI for task 3
+        if (task3Complete) {
+            ImageView taskIcon3 = findViewById(R.id.checklist_item_3_icon);
+            TextView taskText3 = findViewById(R.id.checklist_item_3_text);
+            if (taskIcon3 != null && taskText3 != null) {
+                taskIcon3.setImageResource(R.drawable.ic_checkmark);
+                taskIcon3.setTag("accent_color");
+                taskText3.setTag("secondary_text");
+            }
+        }
+        
+        // Update UI for all tasks complete
+        if (allTasksComplete) {
+            TextView tasksCompleted = findViewById(R.id.tasks_completed);
+            if (tasksCompleted != null) {
+                tasksCompleted.setVisibility(View.VISIBLE);
+                checklistItem1.setVisibility(View.INVISIBLE);
+                checklistItem2.setVisibility(View.INVISIBLE);
+                checklistItem3.setVisibility(View.INVISIBLE);
+            }
+        }
+        
+        // Apply theme to show proper colors
+        if (tm != null) {
+            tm.applyTheme();
+        }
+        
+        Log.d(TAG, String.format("📋 Checklist state loaded: Task1=%s, Task2=%s, Task3=%s, AllComplete=%s", 
+                task1Complete, task2Complete, task3Complete, allTasksComplete));
     }
 
     /**
@@ -363,6 +455,9 @@ public class DashboardActivity extends AppCompatActivity {
 
         // Change hamburger icon to close icon
         hamburgerButton.setImageResource(R.drawable.ic_close_vertical);
+
+        // Refresh checklist state when opening modal
+        loadChecklistState();
 
         // Show first tab by default
         switchTab(0);
@@ -552,25 +647,25 @@ public class DashboardActivity extends AppCompatActivity {
         Boolean task3 = prefs.getBoolean("checklist_item_3", false);
         Boolean allTasks = prefs.getBoolean("all_tasks", false);
 
-        // backend - get allTasks from db
+        if (task1 && task2 && task3 && !allTasks) {
+            // All tasks completed for the first time today
+            SharedPreferences.Editor editor = prefs.edit();
+            editor.putBoolean("all_tasks", true);
+            editor.apply();
 
-        if (task1 && task2 && task3) {
-            allTasks = true;
-            prefs.edit()
-                    .putBoolean("all_tasks", true)
-                    .apply();
-
-            // backend - update db to say user completed all tasks for the day
-        }
-        if (allTasks) {
+            // Trigger daily check-in when all tasks are completed
+            performDailyCheckin();
+            
+            // Show completion UI
             TextView tasksCompleted = findViewById(R.id.tasks_completed);
-            tasksCompleted.setVisibility(View.VISIBLE);
-
-            checklistItem1.setVisibility(View.INVISIBLE);
-            checklistItem2.setVisibility(View.INVISIBLE);
-            checklistItem3.setVisibility(View.INVISIBLE);
-
-            // backend - add user points
+            if (tasksCompleted != null) {
+                tasksCompleted.setVisibility(View.VISIBLE);
+                checklistItem1.setVisibility(View.INVISIBLE);
+                checklistItem2.setVisibility(View.INVISIBLE);
+                checklistItem3.setVisibility(View.INVISIBLE);
+            }
+            
+            Log.d(TAG, "🎉 All daily tasks completed! Daily check-in triggered.");
         }
     }
 
@@ -781,7 +876,14 @@ public class DashboardActivity extends AppCompatActivity {
 
         // Initialize meter with default value
         meterFill.post(() -> {
-            updateMeter(currentUsage, thresholdValue);
+            // Use yesterday's usage as initial threshold if available
+            if (energyDataManager != null) {
+                double yesterdayThreshold = energyDataManager.getYesterdayEnergyUsage(currentDormName);
+                int dynamicThreshold = yesterdayThreshold > 0 ? (int)yesterdayThreshold : thresholdValue;
+                updateMeter(currentUsage, dynamicThreshold);
+            } else {
+                updateMeter(currentUsage, thresholdValue);
+            }
         });
     }
 
@@ -947,7 +1049,10 @@ public class DashboardActivity extends AppCompatActivity {
         dashContentFragment.updateCurrentUsage(liveUsage + "kW");
         
         // Update the energy meter with real usage
-        updateMeter(liveUsage, thresholdValue);
+        // Use yesterday's usage as threshold (triangle position)
+        double yesterdayThreshold = energyDataManager.getYesterdayEnergyUsage(data.getBuildingName());
+        int dynamicThreshold = yesterdayThreshold > 0 ? (int)yesterdayThreshold : thresholdValue;
+        updateMeter(liveUsage, dynamicThreshold);
         
         // 🎮 Update dorm status with DYNAMIC position based on points
         String position = energyDataManager.getBuildingPosition(data.getBuildingName());
@@ -996,7 +1101,10 @@ public class DashboardActivity extends AppCompatActivity {
         dashContentFragment.updateCurrentUsage(liveUsage + "kW");
 
         // Update the energy meter with new usage
-        updateMeter(liveUsage, thresholdValue);
+        // Use yesterday's usage as threshold (triangle position)
+        double yesterdayThreshold = energyDataManager.getYesterdayEnergyUsage(currentDormName);
+        int dynamicThreshold = yesterdayThreshold > 0 ? (int)yesterdayThreshold : thresholdValue;
+        updateMeter(liveUsage, dynamicThreshold);
 
         // 🎮 Update dorm status with DYNAMIC position based on points
         String position = energyDataManager.getBuildingPosition(currentDormName);
@@ -1035,31 +1143,28 @@ public class DashboardActivity extends AppCompatActivity {
     }
     
     /**
-     * Rotate through different dorms every few updates
+     * Update data for user's dorm without constant points updates
      */
     private void rotateDorm() {
-        // Change dorm every 2 updates (approximately every 20 seconds) - more frequent for testing
-        if (random.nextInt(2) == 0) {
-            currentDormIndex = (currentDormIndex + 1) % dormNames.length;
-            currentDormName = dormNames[currentDormIndex];
-            Log.d(TAG, "🏠 Rotated to dorm: " + currentDormName + " (Index: " + currentDormIndex + ")");
-        }
+        // Removed automatic dorm rotation - now shows only user's selected dorm
+        Log.d(TAG, "🏠 Updating data for user's dorm: " + currentDormName);
+
+        // Removed constant points update - this was causing spam every 10 seconds
+        // Points should only be updated during daily check-in or scheduled energy checks
+
+        //end of dorm points code
     }
     
     /**
-     * Manual refresh - switches to next dorm and updates data immediately
+     * Manual refresh - updates data for user's current dorm without switching
      */
     public void manualRefresh() {
-        Log.d(TAG, "Manual refresh requested");
+        Log.d(TAG, "Manual refresh requested for user's dorm: " + currentDormName);
         
-        // Switch to next dorm
-        currentDormIndex = (currentDormIndex + 1) % dormNames.length;
-        currentDormName = dormNames[currentDormIndex];
-        
-        // Update UI immediately
+        // Update UI immediately for current user's dorm (no dorm switching)
         updateUIWithLiveData();
         
-        Log.d(TAG, "Manual refresh completed - switched to: " + currentDormName);
+        Log.d(TAG, "Manual refresh completed for: " + currentDormName);
     }
     
     /**
