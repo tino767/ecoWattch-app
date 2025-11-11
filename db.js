@@ -6,7 +6,7 @@ const pool = mysql.createPool({
   user: process.env.DB_USER || "root",
   password: process.env.DB_PASSWORD || "",   // empty cuz we didn't set one 
   database: process.env.DB_DATABASE || "ecoWattch_db",
-  port: process.env.DB_PORT || 3001,        
+  port: process.env.DB_PORT || 3001,        // XAMPP MySQL port from configuration
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0
