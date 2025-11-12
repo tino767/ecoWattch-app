@@ -9,15 +9,27 @@ import android.os.Bundle;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
+import android.util.Log;
 import android.widget.TextView;
 import android.view.View;
+import android.widget.Toast;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import com.example.ecowattchtechdemo.gamification.DormPointsManager;
 
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+import com.example.ecowattchtechdemo.ApiResponse;
+import com.example.ecowattchtechdemo.willow.models.Palette;
+import com.google.gson.Gson;
+
 public class ShopActivity extends AppCompatActivity {
+    private static final String TAG = "ShopActivity";
     TextView backButton;
     TextView tabPallets, tabOwned, tabMore;
     RecyclerView palletsRecycler, ownedRecycler;
@@ -33,10 +45,11 @@ public class ShopActivity extends AppCompatActivity {
     // theme manager
     private ThemeManager tm;
 
+
     // TEST PALETTE VALUES
     // Format: [primary, secondary, accent, background_main, background_light, gradient_start, gradient_end]
     // Indices 5 & 6 are the gradient colors that match the big UI circle gradients
-    private final Map<String, String[]> paletteColors = new HashMap<String, String[]>() {{
+    private Map<String, String[]> paletteColors = new HashMap<String, String[]>() {{
         put("PEACH", new String[]{"#FFFFFF", "#AAAAAA", "#CD232E", "#1B1B1B", "#262626", "#FFFFFF", "#CD232E"});
         put("BLUE", new String[]{"#060606", "#1B1B1B", "#1956DB", "#BCBCBC", "#7D7D7D", "#A5C9FF", "#1956DB"});
         put("GREEN", new String[]{"#FFFFFF", "#AAAAAA", "#19BD53", "#38916A", "#262626", "#C8F5D8", "#19BD53"});
@@ -46,6 +59,7 @@ public class ShopActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_shop);
 
@@ -82,17 +96,15 @@ public class ShopActivity extends AppCompatActivity {
             }
         });
 
-        // Initialize sample data (BACKEND YOU REPLACE DATA HERE)
-        initializeSampleData();
-
-        // Setup RecyclerViews with horizontal scrolling
-        setupRecyclerViews();
-
-        // Setup tab click listeners
-        setupTabs();
-
         // initialize ThemeManager
         tm = new ThemeManager(this);
+
+        // Fetch palettes from API
+        fetchPalettesFromApiAndInit();
+
+        initializeSampleData();
+        setupRecyclerViews();
+        setupTabs();
     }
 
     protected void onStart() {
@@ -155,16 +167,15 @@ public class ShopActivity extends AppCompatActivity {
         palletsAdapter = new ShopAdapter(palletsList, new ShopAdapter.OnItemClickListener() {
             @Override
             public void onItemClick(ShopItem item, int position) {
-                // Handle item click - backend can add purchase logic here - Risa you use palette handler here)
+                // Handle item click - check if owned or attempt purchase
 
                 // get colors for clicked palette
-                // TEMP/TODO: get colors[] from backend
                 String[] colors = paletteColors.get(item.getName());
                 if (colors == null || colors.length < 5) return;
 
                 // check for owned - only select if palette is owned
                 if (item.isOwned()) {
-                    // get color values from backend, store in SharedPreferences
+                    // Apply the owned palette
                     SharedPreferences prefs = getSharedPreferences("ThemePrefs", MODE_PRIVATE);
                     SharedPreferences.Editor editor = prefs.edit();
 
@@ -176,10 +187,13 @@ public class ShopActivity extends AppCompatActivity {
 
                     editor.apply();
 
-                    // apply theme
-                    onResume();
+                    // Apply theme immediately
+                    tm.applyTheme();
+                    
+                    Toast.makeText(ShopActivity.this, "Applied " + item.getName() + " palette", Toast.LENGTH_SHORT).show();
                 } else {
-                    previewPalette(colors);
+                    // Attempt to purchase the palette
+                    attemptPurchase(item, position);
                 }
             }
         });
@@ -270,6 +284,186 @@ public class ShopActivity extends AppCompatActivity {
 
         // Set selected tab to bold (preserving custom font)
         selectedTab.setTypeface(matrixFont, Typeface.BOLD);
+    }
+
+    // ---fetch palettes from API and then initialize UI ---
+    private void fetchPalettesFromApiAndInit() {
+        ApiService api = ApiClient.getClient().create(ApiService.class);
+        Call<ApiResponse> call = api.getPalettes();
+        call.enqueue(new Callback<ApiResponse>() {
+            @Override
+            public void onResponse(Call<ApiResponse> call, Response<ApiResponse> response) {
+                Log.d(TAG, "Palettes request URL: " + call.request().url());
+                if (response.isSuccessful() && response.body() != null) {
+                    Log.d(TAG, "Palettes response body: " + new Gson().toJson(response.body()));
+                } else {
+                    Log.w(TAG, "Palettes response unsuccessful. code=" + response.code()
+                            + " error=" + (response.errorBody() != null ? response.errorBody().toString() : "null"));
+                }
+
+                if (response.isSuccessful() && response.body() != null && "success".equalsIgnoreCase(response.body().status)) {
+                    if (response.body().palettes != null) {
+                        for (Palette p : response.body().palettes) {
+                            if (p == null || p.offeringName == null) continue;
+
+                            // Trim and normalize the offering name so it matches your keys
+                            String key = p.offeringName.trim().toUpperCase();
+                            if (key.isEmpty()) continue;
+
+                            String[] arr = new String[]{
+                                    safeHex(p.colorHex1),
+                                    safeHex(p.colorHex2),
+                                    safeHex(p.colorHex3),
+                                    safeHex(p.colorHex4),
+                                    safeHex(p.colorHex5),
+                                    safeHex(p.colorHex6),
+                                    safeHex(p.colorHex7)
+                            };
+
+                            paletteColors.put(key, arr);
+                            Log.d(TAG, "Updated paletteColors[" + key + "] = " + java.util.Arrays.toString(arr));
+                        }
+                    }
+                } else {
+                    Log.w(TAG, "Palettes API response unsuccessful or empty");
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ApiResponse> call, Throwable t) {
+                Log.w(TAG, "Failed to fetch palettes: " + t.getMessage());
+            }
+        });
+    }
+
+    private String safeHex(String hex) {
+        return (hex != null && !hex.isEmpty()) ? hex : "#000000";
+    }
+
+    /**
+     * Attempt to purchase a palette item
+     */
+    private void attemptPurchase(ShopItem item, int position) {
+        DormPointsManager pointsManager = new DormPointsManager(this);
+        int currentPoints = pointsManager.getIndividualSpendablePoints();
+        int itemCost = item.getPrice();
+
+        if (currentPoints < itemCost) {
+            Toast.makeText(this, "Not enough points! Need " + itemCost + ", have " + currentPoints, 
+                          Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        // Show confirmation dialog
+        new android.app.AlertDialog.Builder(this)
+            .setTitle("Purchase " + item.getName())
+            .setMessage("This will cost " + itemCost + " energy points. Continue?")
+            .setPositiveButton("Purchase", (dialog, which) -> {
+                processPurchase(item, position, pointsManager, itemCost);
+            })
+            .setNegativeButton("Cancel", null)
+            .show();
+    }
+
+    /**
+     * Process the actual purchase
+     */
+    private void processPurchase(ShopItem item, int position, DormPointsManager pointsManager, int itemCost) {
+        // Deduct points locally first
+        boolean success = pointsManager.spendIndividualPoints(itemCost);
+        
+        if (success) {
+            // Update item ownership
+            item.setOwned(true);
+            palletsAdapter.notifyItemChanged(position);
+            
+            // Add to owned list
+            String[] colors = paletteColors.get(item.getName());
+            ShopItem ownedItem = new ShopItem(item.getName(), item.getPrice(), colors[5], colors[6]);
+            ownedItem.setOwned(true);
+            ownedList.add(ownedItem);
+            ownedAdapter.notifyDataSetChanged();
+            
+            // Update points display
+            updateEnergyPointsDisplay();
+            
+            // Sync with backend
+            syncPurchaseWithBackend(item.getName(), itemCost);
+            
+            Toast.makeText(this, "Successfully purchased " + item.getName() + "!", Toast.LENGTH_SHORT).show();
+            
+            // Apply the newly purchased palette immediately
+            applyPalette(item.getName());
+        } else {
+            Toast.makeText(this, "Purchase failed. Please try again.", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    /**
+     * Apply a palette by name
+     */
+    private void applyPalette(String paletteName) {
+        String[] colors = paletteColors.get(paletteName);
+        if (colors == null || colors.length < 5) return;
+
+        SharedPreferences prefs = getSharedPreferences("ThemePrefs", MODE_PRIVATE);
+        SharedPreferences.Editor editor = prefs.edit();
+
+        editor.putString("primary_color", colors[0]);
+        editor.putString("secondary_color", colors[1]);
+        editor.putString("accent_color", colors[2]);
+        editor.putString("background_main", colors[3]);
+        editor.putString("background_light", colors[4]);
+
+        editor.apply();
+
+        // Apply theme immediately
+        tm.applyTheme();
+    }
+
+    /**
+     * Sync purchase with backend
+     */
+    private void syncPurchaseWithBackend(String paletteName, int pointsDeducted) {
+        SharedPreferences prefs = getSharedPreferences("MyAppPrefs", Context.MODE_PRIVATE);
+        String username = prefs.getString("Username", "");
+
+        if (username.isEmpty()) {
+            Log.w(TAG, "No username found for backend sync");
+            return;
+        }
+
+        ApiService api = ApiClient.getClient().create(ApiService.class);
+        PurchaseRequest request = new PurchaseRequest(username, paletteName, pointsDeducted);
+        
+        Call<PurchaseResponse> call = api.purchasePalette(request);
+        call.enqueue(new Callback<PurchaseResponse>() {
+            @Override
+            public void onResponse(Call<PurchaseResponse> call, Response<PurchaseResponse> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    PurchaseResponse purchaseResponse = response.body();
+                    if ("success".equals(purchaseResponse.getStatus())) {
+                        Log.d(TAG, "Purchase synced with backend successfully");
+                        // Update local points to match backend
+                        DormPointsManager pointsManager = new DormPointsManager(ShopActivity.this);
+                        pointsManager.setIndividualSpendablePoints(purchaseResponse.getNewPointTotal());
+                        updateEnergyPointsDisplay();
+                    } else {
+                        Log.w(TAG, "Backend purchase failed: " + purchaseResponse.getMessage());
+                        Toast.makeText(ShopActivity.this, "Purchase saved locally, sync failed", Toast.LENGTH_SHORT).show();
+                    }
+                } else {
+                    Log.w(TAG, "Backend purchase request failed");
+                    Toast.makeText(ShopActivity.this, "Purchase saved locally, sync failed", Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onFailure(Call<PurchaseResponse> call, Throwable t) {
+                Log.w(TAG, "Backend purchase request error: " + t.getMessage());
+                Toast.makeText(ShopActivity.this, "Purchase saved locally, sync failed", Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
 }

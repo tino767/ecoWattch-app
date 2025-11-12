@@ -157,32 +157,6 @@
 
         </LinearLayout>
         
-        <!-- Refresh Button at the bottom -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            android:gravity="center">
-            
-            <TextView
-                android:id="@+id/refresh_button"
-                android:tag="accent_text"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:background="@drawable/pill_background"
-                android:clickable="true"
-                android:focusable="true"
-                android:fontFamily="@font/matrixtype_display"
-                android:gravity="center"
-                android:paddingHorizontal="30dp"
-                android:paddingVertical="12dp"
-                android:text="🔄 REFRESH"
-                android:textColor="@color/text_red"
-                android:textSize="16sp"
-                android:textStyle="bold" />
-                
-        </LinearLayout>
-
     </LinearLayout>
 
 </FrameLayout>
