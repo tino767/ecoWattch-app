@@ -318,7 +318,7 @@ public class ShopActivity extends AppCompatActivity {
                                     safeHex(p.colorHex7)
                             };
 
-                            paletteColors.put(key, arr);
+                            paletteColors.put(key, arr); // put this in palettesList
                             Log.d(TAG, "Updated paletteColors[" + key + "] = " + java.util.Arrays.toString(arr));
                         }
                     }
@@ -376,8 +376,7 @@ public class ShopActivity extends AppCompatActivity {
             palletsAdapter.notifyItemChanged(position);
 
             // Add to owned list
-            String[] colors = paletteColors.get(item.getName());
-            ShopItem ownedItem = new ShopItem(item.getName(), item.getPrice(), colors[5], colors[6]);
+            ShopItem ownedItem = new ShopItem(item.getName(), item.getPrice(), item.getColors());
             ownedItem.setOwned(true);
             ownedList.add(ownedItem);
             ownedAdapter.notifyDataSetChanged();

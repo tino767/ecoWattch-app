@@ -20,7 +20,7 @@ public class ShopItem {
     private String colorBackgroundPrimary;
     private String colorBackgroundSecondary;
 
-    // Constructor with palette colors list (in progress)
+    // Constructor with palette colors (preferred)
     public ShopItem(String name, int price,
                     String colorPrimary, String colorSecondary, String colorAccent,
                     String colorBackgroundPrimary, String colorBackgroundSecondary) {
@@ -37,7 +37,22 @@ public class ShopItem {
         this.gradientEndColor = colorAccent;
     }
 
-    // Constructor with palette colors list (in progress)
+    // Constructor with palette colors as a list
+    public ShopItem(String name, int Price, String[] colors) {
+        this.name = name;
+        this.price = price;
+        this.isOwned = false;
+        this.isSelected = false;
+        this.colorPrimary = colors[0];
+        this.colorSecondary = colors[1];
+        this.colorAccent = colors[2];
+        this.colorBackgroundPrimary = colors[3];
+        this.colorBackgroundSecondary = colors[4];
+        this.gradientStartColor = colors[0];
+        this.gradientEndColor = colors[2];
+    }
+
+    // Constructor with palette colors and booleans
     public ShopItem(String name, int price,
                     String colorPrimary, String colorSecondary, String colorAccent,
                     String colorBackgroundPrimary, String colorBackgroundSecondary,
@@ -55,7 +70,7 @@ public class ShopItem {
         this.gradientEndColor = colorAccent;
     }
 
-    // Constructor with gradient colors (preferred)
+    // Constructor with gradient colors for backwards compatibility
     public ShopItem(String name, int price, String gradientStartColor, String gradientEndColor) {
         this.name = name;
         this.price = price;
