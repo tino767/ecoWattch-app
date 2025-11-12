@@ -188,6 +188,8 @@ public class ShopActivity extends AppCompatActivity {
 
                     Toast.makeText(ShopActivity.this, "Applied " + item.getName() + " palette", Toast.LENGTH_SHORT).show();
                 } else {
+                    // preview the palette
+                    previewPalette(colors);
                     // Attempt to purchase the palette
                     attemptPurchase(item, position);
                 }
