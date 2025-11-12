@@ -389,17 +389,17 @@ public class ShopActivity extends AppCompatActivity {
             Toast.makeText(this, "Successfully purchased " + item.getName() + "!", Toast.LENGTH_SHORT).show();
 
             // Apply the newly purchased palette immediately
-            applyPalette(item.getName());
+            applyPalette(item);
         } else {
             Toast.makeText(this, "Purchase failed. Please try again.", Toast.LENGTH_SHORT).show();
         }
     }
 
     /**
-     * Apply a palette by name
+     * Apply a palette from ShopItem
      */
-    private void applyPalette(String paletteName) {
-        String[] colors = paletteColors.get(paletteName);
+    private void applyPalette(ShopItem item) {
+        String[] colors = item.getColors();
         if (colors == null || colors.length < 5) return;
 
         SharedPreferences prefs = getSharedPreferences("ThemePrefs", MODE_PRIVATE);
