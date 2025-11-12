@@ -13,6 +13,48 @@ public class ShopItem {
     private boolean isOwned;
     private boolean isSelected;
 
+    // palette colors
+    private String colorPrimary;
+    private String colorSecondary;
+    private String colorAccent;
+    private String colorBackgroundPrimary;
+    private String colorBackgroundSecondary;
+
+    // Constructor with palette colors list (in progress)
+    public ShopItem(String name, int price,
+                    String colorPrimary, String colorSecondary, String colorAccent,
+                    String colorBackgroundPrimary, String colorBackgroundSecondary) {
+        this.name = name;
+        this.price = price;
+        this.isOwned = false;
+        this.isSelected = false;
+        this.colorPrimary = colorPrimary;
+        this.colorSecondary = colorSecondary;
+        this.colorAccent = colorAccent;
+        this.colorBackgroundPrimary = colorBackgroundPrimary;
+        this.colorBackgroundSecondary = colorBackgroundSecondary;
+        this.gradientStartColor = colorPrimary;
+        this.gradientEndColor = colorAccent;
+    }
+
+    // Constructor with palette colors list (in progress)
+    public ShopItem(String name, int price,
+                    String colorPrimary, String colorSecondary, String colorAccent,
+                    String colorBackgroundPrimary, String colorBackgroundSecondary,
+                    boolean isOwned, boolean isSelected) {
+        this.name = name;
+        this.price = price;
+        this.isOwned = isOwned;
+        this.isSelected = isSelected;
+        this.colorPrimary = colorPrimary;
+        this.colorSecondary = colorSecondary;
+        this.colorAccent = colorAccent;
+        this.colorBackgroundPrimary = colorBackgroundPrimary;
+        this.colorBackgroundSecondary = colorBackgroundSecondary;
+        this.gradientStartColor = colorPrimary;
+        this.gradientEndColor = colorAccent;
+    }
+
     // Constructor with gradient colors (preferred)
     public ShopItem(String name, int price, String gradientStartColor, String gradientEndColor) {
         this.name = name;
@@ -74,5 +116,9 @@ public class ShopItem {
 
     public void setSelected(boolean selected) {
         isSelected = selected;
+    }
+
+    public String[] getColors() {
+        return new String[]{colorPrimary, colorSecondary, colorAccent, colorBackgroundPrimary, colorBackgroundSecondary};
     }
 }

@@ -4,7 +4,6 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.Typeface;
-import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -27,7 +26,7 @@ public class ShopActivity extends AppCompatActivity {
     private ShopAdapter palletsAdapter;
     private ShopAdapter ownedAdapter;
 
-    private List<ShopItem> palletsList;
+    private List<ShopItem> palettesList;
     private List<ShopItem> ownedList;
 
     // theme manager
@@ -115,35 +114,32 @@ public class ShopActivity extends AppCompatActivity {
     }
 
     private void initializeSampleData() {
-        // Sample palette data - BACKEND: Replace with API calls
-        // Using programmatic gradients - matches the big UI circle gradients
-        palletsList = new ArrayList<>();
+        // initialize offerings and owned lists with hardcoded defaults
+            // defaults are peach and blue for now, can be changed.
+        palettesList = new ArrayList<>();
+        palettesList.add(new ShopItem("PEACH", 500,
+                "#FFFFFF", "#AAAAAA", "#CD232E", "#1B1B1B", "#262626",
+                true, false));
+        palettesList.add(new ShopItem("BLUE", 500,
+                "#060606", "#1B1B1B", "#1956DB", "#BCBCBC", "#7D7D7D",
+                true, false));
+        // this one is fully just for testing
+        palettesList.add(new ShopItem("CYAN", 500,
+                "#FFFFFF", "#AAAAAA", "#19DBD1", "#313131", "#262626",
+                false, false));
 
-        // Gradient circle uses indices 5 (light) and 6 (dark) to match the UI background circles
-        String[] peachColors = paletteColors.get("PEACH");
-        palletsList.add(new ShopItem("PEACH", 500, peachColors[5], peachColors[6]));
-
-        String[] blueColors = paletteColors.get("BLUE");
-        palletsList.add(new ShopItem("BLUE", 500, blueColors[5], blueColors[6]));
-
-        String[] greenColors = paletteColors.get("GREEN");
-        palletsList.add(new ShopItem("GREEN", 500, greenColors[5], greenColors[6]));
-
-        String[] magentaColors = paletteColors.get("MAGENTA");
-        palletsList.add(new ShopItem("MAGENTA", 500, magentaColors[5], magentaColors[6]));
-
-        String[] cyanColors = paletteColors.get("CYAN");
-        palletsList.add(new ShopItem("CYAN", 500, cyanColors[5], cyanColors[6]));
-
-        palletsList.get(0).setOwned(true);
-        palletsList.get(1).setOwned(true);
-
-        // Sample owned items - backend will replace with user's owned items
         ownedList = new ArrayList<>();
-        ownedList.add(new ShopItem("PEACH", 500, peachColors[5], peachColors[6]));
-        ownedList.get(0).setOwned(true);
-        ownedList.add(new ShopItem("BLUE", 500, blueColors[5], blueColors[6]));
-        ownedList.get(1).setOwned(true);
+        ownedList.add(new ShopItem("PEACH", 500,
+                "#FFFFFF", "#AAAAAA", "#CD232E", "#1B1B1B", "#262626",
+                true, false));
+        ownedList.add(new ShopItem("BLUE", 500,
+                "#060606", "#1B1B1B", "#1956DB", "#BCBCBC", "#7D7D7D",
+                true, false));
+
+        // BACKEND: add API calls to get owned and offered palettes
+            // use this format: (String name, int price,
+            //            String colorPrimary, String colorSecondary, String colorAccent,
+            //            String colorBackgroundPrimary, String colorBackgroundSecondary)
     }
 
     private void setupRecyclerViews() {
@@ -152,14 +148,13 @@ public class ShopActivity extends AppCompatActivity {
                 this, LinearLayoutManager.HORIZONTAL, false);
         palletsRecycler.setLayoutManager(palletsLayoutManager);
 
-        palletsAdapter = new ShopAdapter(palletsList, new ShopAdapter.OnItemClickListener() {
+        palletsAdapter = new ShopAdapter(palettesList, new ShopAdapter.OnItemClickListener() {
             @Override
             public void onItemClick(ShopItem item, int position) {
                 // Handle item click - backend can add purchase logic here - Risa you use palette handler here)
 
                 // get colors for clicked palette
-                // TEMP/TODO: get colors[] from backend
-                String[] colors = paletteColors.get(item.getName());
+                String[] colors = item.getColors();
                 if (colors == null || colors.length < 5) return;
 
                 // check for owned - only select if palette is owned
