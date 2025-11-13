@@ -11,6 +11,9 @@ import com.example.ecowattchtechdemo.ApiResponse;
 public interface ApiService {
     @POST("/login")
     Call<LoginResponse> login(@Body LoginRequest request);
+
+    @POST("/is_done")
+    Call<isDoneResponse> isDone(@Body isDoneRequest request);
     
     // Willow API integration endpoints (for future use)
     @GET("/energy/{buildingId}")
