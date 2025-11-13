@@ -205,7 +205,28 @@ public class ShopActivity extends AppCompatActivity {
         ownedAdapter = new ShopAdapter(ownedList, new ShopAdapter.OnItemClickListener() {
             @Override
             public void onItemClick(ShopItem item, int position) {
-                // Handle owned item click - MORE BACKEND HERE
+                // Handle owned item click
+
+                // get colors for clicked palette
+                String[] colors = item.getColors();
+                if (colors == null || colors.length < 5) return;
+
+                // Apply the owned palette
+                SharedPreferences prefs = getSharedPreferences("ThemePrefs", MODE_PRIVATE);
+                SharedPreferences.Editor editor = prefs.edit();
+
+                editor.putString("primary_color", colors[0]);
+                editor.putString("secondary_color", colors[1]);
+                editor.putString("accent_color", colors[2]);
+                editor.putString("background_main", colors[3]);
+                editor.putString("background_light", colors[4]);
+
+                editor.apply();
+
+                // Apply theme immediately
+                tm.applyTheme();
+
+                Toast.makeText(ShopActivity.this, "Applied " + item.getName() + " palette", Toast.LENGTH_SHORT).show();
             }
         });
         ownedRecycler.setAdapter(ownedAdapter);
@@ -285,6 +306,7 @@ public class ShopActivity extends AppCompatActivity {
     }
 
     // ---fetch palettes from API and then initialize UI ---
+    // BACKEND - have this use palettesList and ownedList instead
     private void fetchPalettesFromApiAndInit() {
         ApiService api = ApiClient.getClient().create(ApiService.class);
         Call<ApiResponse> call = api.getPalettes();
@@ -318,7 +340,7 @@ public class ShopActivity extends AppCompatActivity {
                                     safeHex(p.colorHex7)
                             };
 
-                            paletteColors.put(key, arr); // put this in palettesList
+                            paletteColors.put(key, arr);
                             Log.d(TAG, "Updated paletteColors[" + key + "] = " + java.util.Arrays.toString(arr));
                         }
                     }
