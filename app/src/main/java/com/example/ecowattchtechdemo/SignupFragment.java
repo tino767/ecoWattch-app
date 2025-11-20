@@ -57,10 +57,11 @@ public class SignupFragment extends Fragment {
         String[] dormitories = {"Tinsley", "Gabaldon", "Sechrist"};
         ArrayAdapter<String> adapter = new ArrayAdapter<>(
                 requireContext(),
-                android.R.layout.simple_dropdown_item_1line,
+                R.layout.dropdown_item,
                 dormitories
         );
         dormDropdown.setAdapter(adapter);
+        dormDropdown.setDropDownBackgroundResource(R.color.modal_background);
 
         signupButton.setOnClickListener(v -> {
             String username = signupUser.getText().toString().trim();

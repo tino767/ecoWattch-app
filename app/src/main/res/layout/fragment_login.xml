@@ -29,6 +29,9 @@
             app:boxBackgroundColor="@color/input_background"
             app:boxBackgroundMode="filled"
             app:hintTextColor="@color/white"
+            app:boxStrokeColor="@color/text_red"
+            app:boxStrokeWidth="0dp"
+            app:boxStrokeWidthFocused="2dp"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp">
@@ -40,7 +43,8 @@
                 android:fontFamily="@font/matrixtype_display"
                 android:hint="Username"
                 android:textColor="@color/white"
-                android:textColorHint="@color/white" />
+                android:textColorHint="@color/white"
+                android:textCursorDrawable="@null" />
 
         </com.google.android.material.textfield.TextInputLayout>
 
@@ -48,6 +52,9 @@
             app:boxBackgroundColor="@color/input_background"
             app:boxBackgroundMode="filled"
             app:hintTextColor="@color/white"
+            app:boxStrokeColor="@color/text_red"
+            app:boxStrokeWidth="0dp"
+            app:boxStrokeWidthFocused="2dp"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp">
@@ -60,7 +67,8 @@
                 android:hint="Password"
                 android:inputType="textPassword"
                 android:textColor="@color/white"
-                android:textColorHint="@color/white" />
+                android:textColorHint="@color/white"
+                android:textCursorDrawable="@null" />
 
         </com.google.android.material.textfield.TextInputLayout>
 
@@ -76,7 +84,8 @@
                 android:fontFamily="@font/matrixtype_display"
                 android:text="Remember me"
                 android:textColor="@color/white"
-                android:textSize="12sp" />
+                android:textSize="12sp"
+                android:buttonTint="@color/text_red" />
 
             <TextView
                 android:layout_width="wrap_content"
@@ -99,7 +108,8 @@
             android:textColor="@color/white"
             android:textSize="16sp"
             android:textStyle="bold"
-            android:visibility="visible" />
+            android:visibility="visible"
+            app:backgroundTint="@null" />
 
         <TextView
             android:id="@+id/signup_link"

@@ -90,7 +90,7 @@
             android:gravity="center"
             android:orientation="vertical"
             android:paddingHorizontal="16dp"
-            android:paddingVertical="26dp">
+            android:paddingVertical="18dp">
 
             <LinearLayout
                 android:layout_width="wrap_content"
@@ -144,7 +144,7 @@
             android:gravity="center"
             android:orientation="vertical"
             android:paddingHorizontal="16dp"
-            android:paddingVertical="26dp">
+            android:paddingVertical="18dp">
 
             <LinearLayout
                 android:layout_width="wrap_content"
@@ -154,18 +154,18 @@
                 android:orientation="horizontal">
 
                 <ImageView
-                    android:tag="primary_color"
                     android:layout_width="20dp"
                     android:layout_height="20dp"
                     android:layout_marginEnd="8dp"
                     android:src="@android:drawable/ic_menu_sort_by_size"
+                    android:tag="primary_color"
                     app:tint="@color/white" />
 
                 <TextView
-                    android:tag="dynamic_text"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:fontFamily="@font/matrixtype_display"
+                    android:tag="dynamic_text"
                     android:text="Shop"
                     android:textColor="@color/white"
                     android:textSize="16sp"
@@ -173,17 +173,19 @@
 
             </LinearLayout>
 
-                <TextView
-                    android:tag="dynamic_text"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:background="@drawable/pill_background"
-                    android:fontFamily="@font/matrixtype_display"
-                    android:paddingHorizontal="12dp"
-                    android:paddingVertical="4dp"
-                    android:text="Energy Shop"
-                    android:textColor="@color/white"
-                    android:textSize="12sp" />
+            <TextView
+                android:id="@+id/shop_points_text"
+                android:layout_width="120dp"
+                android:layout_height="wrap_content"
+                android:background="@drawable/pill_background"
+                android:fontFamily="@font/matrixtype_display"
+                android:gravity="center"
+                android:paddingHorizontal="12dp"
+                android:paddingVertical="4dp"
+                android:tag="dynamic_text"
+                android:text="0 pts"
+                android:textColor="@color/white"
+                android:textSize="12sp" />
         </LinearLayout>
 
     </LinearLayout>
@@ -339,6 +341,7 @@
                     android:id="@+id/checklist_item_1"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp"
                     android:orientation="horizontal"
                     android:background="@drawable/pill_background"
                     android:paddingHorizontal="10dp"
@@ -376,6 +379,7 @@
                     android:id="@+id/checklist_item_2"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp"
                     android:orientation="horizontal"
                     android:background="@drawable/pill_background"
                     android:paddingHorizontal="10dp"
@@ -413,6 +417,7 @@
                     android:id="@+id/checklist_item_3"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:layout_marginBottom="16dp"
                     android:orientation="horizontal"
                     android:background="@drawable/pill_background"
                     android:paddingHorizontal="10dp"
@@ -447,13 +452,14 @@
 
                 <TextView
                     android:id="@+id/tasks_completed"
-                    android:tag="accent_text"
+                    android:tag="dynamic_text"
                     android:layout_width="match_parent"
-                    android:layout_height="match_parent"
+                    android:layout_height="wrap_content"
                     android:fontFamily="@font/matrixtype_display"
                     android:text="All tasks completed! You've earned your daily points."
-                    android:textColor="@color/text_red"
+                    android:textColor="@color/white"
                     android:textSize="14sp"
+                    android:gravity="center"
                     android:visibility="gone" />
 
             </LinearLayout>
