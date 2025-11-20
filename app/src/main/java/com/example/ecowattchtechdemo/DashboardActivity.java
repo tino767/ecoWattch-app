@@ -26,8 +26,8 @@ import com.android.volley.toolbox.Volley;
 import com.example.ecowattchtechdemo.willow.WillowEnergyDataManager;
 import com.example.ecowattchtechdemo.willow.WillowApiV3Config;
 import com.example.ecowattchtechdemo.willow.models.EnergyDataResponse;
+import com.example.ecowattchtechdemo.gamification.DormPointsManager;
 import com.example.ecowattchtechdemo.gamification.EnergyCheckScheduler;
-import com.example.ecowattchtechdemo.gamification.GamificationTester;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -39,12 +39,23 @@ public class DashboardActivity extends AppCompatActivity {
     LinearLayout records, shop;
     private DashContentFragment dashContentFragment;
     private Handler updateHandler;
-    private Random random;
     private DecimalFormat decimalFormat;
     
     // Live data configuration
     private String currentDormName = "TINSLEY";
-    private static final long UPDATE_INTERVAL = 60000; // 1 minute instead of 10 seconds to reduce constant refresh
+    // Update intervals for different data types
+    private static final long LIVE_ENERGY_INTERVAL = 60000;      // 1 minute - live energy data
+    private static final long POTENTIAL_ENERGY_INTERVAL = 3600000; // 1 hour - potential energy (only changes at 10pm)
+    private static final long RANKINGS_INTERVAL = 300000;        // 5 minutes - dorm rankings/positions
+    
+    // Tracking last update times
+    private long lastLiveEnergyUpdate = 0;
+    private long lastPotentialEnergyUpdate = 0;
+    private long lastRankingsUpdate = 0;
+    
+    // Cached values to avoid redundant API calls
+    private String cachedDormPosition = null;
+    private int cachedPotentialEnergy = 0;
     
     // Dorm data for rotation
     private String[] dormNames = {"TINSLEY", "GABALDON", "SECHRIST"};
@@ -70,14 +81,13 @@ public class DashboardActivity extends AppCompatActivity {
     // Willow API integration
     private WillowEnergyDataManager energyDataManager;
     private boolean isWillowAuthenticated = false;
-    private boolean useRealData = false; // Toggle between real and simulated data
 
     // Meter components
     View meterFill;
     ImageView thresholdIndicator;
 
     // Meter configuration
-    private static final int MAX_USAGE = 600; // 600kw max
+    private static final int MAX_USAGE = 3000; // 3000kWh max daily usage for meter scaling
     private static final int MIN_USAGE = 0;   // 0kw min
     private int currentUsage = 0;  // Initial value, updated by live data
     private int thresholdValue = 300; // Will be updated to yesterday's usage dynamically
@@ -94,6 +104,11 @@ public class DashboardActivity extends AppCompatActivity {
         setupNavigationButtons();
         setupModalComponents();
         setupFragment(savedInstanceState);
+        
+        // Initialize cached values for smart updates
+        cachedDormPosition = currentDormName;
+        cachedPotentialEnergy = 0;
+        
         startLiveDataUpdates();
 
         // initialize themeManager
@@ -107,7 +122,6 @@ public class DashboardActivity extends AppCompatActivity {
     
     private void initializeComponents() {
         updateHandler = new Handler(Looper.getMainLooper());
-        random = new Random();
         decimalFormat = new DecimalFormat("#,##0");
         
         // Get user's dorm from SharedPreferences
@@ -159,8 +173,8 @@ public class DashboardActivity extends AppCompatActivity {
             authenticateWithWillow();
             
         } catch (Exception e) {
-            Log.w(TAG, "Failed to initialize Willow API, falling back to simulated data", e);
-            useRealData = false;
+            Log.e(TAG, "❌ Failed to initialize Willow API", e);
+            isWillowAuthenticated = false;
         }
     }
     
@@ -176,7 +190,6 @@ public class DashboardActivity extends AppCompatActivity {
         if (clientId == null || clientId.isEmpty() || clientSecret == null || clientSecret.isEmpty()) {
             Log.e(TAG, "❌ Willow API credentials not found in BuildConfig. Check local.properties file.");
             isWillowAuthenticated = false;
-            useRealData = false;
             
             runOnUiThread(() -> {
                 if (dashContentFragment != null) {
@@ -193,26 +206,27 @@ public class DashboardActivity extends AppCompatActivity {
             public void onSuccess(String token) {
                 Log.d(TAG, "✅ Willow API authentication successful!");
                 isWillowAuthenticated = true;
-                useRealData = true;
                 
                 runOnUiThread(() -> {
                     // Update UI to indicate real data is being used
                     if (dashContentFragment != null) {
                         dashContentFragment.updateYesterdaysTotal("Connected to Willow API ✅");
                     }
+                    
+                    // 🚀 INSTANT UPDATE: Force immediate data fetch after successful authentication
+                    Log.d(TAG, "🚀 Triggering instant data update after authentication");
+                    forceInstantDataUpdate();
                 });
             }
             
             @Override
             public void onError(String error) {
-                Log.w(TAG, "❌ Willow API authentication failed: " + error);
+                Log.e(TAG, "❌ Willow API authentication failed: " + error);
                 isWillowAuthenticated = false;
-                useRealData = false;
                 
                 runOnUiThread(() -> {
-                    // Update UI to indicate simulated data
                     if (dashContentFragment != null) {
-                        dashContentFragment.updateYesterdaysTotal("Using Simulated Data 🔄");
+                        dashContentFragment.updateYesterdaysTotal("Authentication Failed: " + error + " ❌");
                     }
                 });
             }
@@ -874,40 +888,81 @@ public class DashboardActivity extends AppCompatActivity {
         meterFill = findViewById(R.id.meter_fill);
         thresholdIndicator = findViewById(R.id.threshold_indicator);
 
-        // Initialize meter with default value
+        // Initialize meter with today's total vs yesterday's total (REAL DATA ONLY)
         meterFill.post(() -> {
-            // Use yesterday's usage as initial threshold if available
+            // Use proper daily totals for meter initialization - no fallbacks
             if (energyDataManager != null) {
-                double yesterdayThreshold = energyDataManager.getYesterdayEnergyUsage(currentDormName);
-                int dynamicThreshold = yesterdayThreshold > 0 ? (int)yesterdayThreshold : thresholdValue;
-                updateMeter(currentUsage, dynamicThreshold);
+                DormPointsManager pointsManager = new DormPointsManager(this);
+                double todayTotal = pointsManager.getTodayEnergyUsage(currentDormName);
+                double yesterdayTotal = pointsManager.getYesterdayEnergyUsage(currentDormName);
+                
+                int todayForMeter = (int) todayTotal; // Real data only
+                int yesterdayForMeter = (int) yesterdayTotal; // Real data only
+                
+                updateMeter(todayForMeter, yesterdayForMeter);
+                Log.d(TAG, "🎯 REAL DATA Meter initialized - Today: " + todayForMeter + " kWh, Yesterday: " + yesterdayForMeter + " kWh");
             } else {
-                updateMeter(currentUsage, thresholdValue);
+                updateMeter(0, 0); // No data state
             }
         });
     }
 
     /**
-     * Updates the energy meter display
-     * @param usage Current energy usage in kw (0-400)
-     * @param threshold Threshold value in kw
+     * Updates the energy meter display with relative scaling
+     * Triangle shows yesterday's total as today's goal
+     * @param todayTotal Today's accumulated energy total in kWh  
+     * @param yesterdayTotal Yesterday's total energy in kWh (triangle position = goal)
      */
-    private void updateMeter(int usage, int threshold) {
-        // Calculate meter fill height as percentage
-        float usagePercentage = ((float) usage / MAX_USAGE);
-        float thresholdPercentage = ((float) threshold / MAX_USAGE);
+    private void updateMeter(int todayTotal, int yesterdayTotal) {
+        Log.d(TAG, "🎯 Meter Input - Today: " + todayTotal + " kWh, Yesterday: " + yesterdayTotal + " kWh");
+        
+        // If no yesterday data, create a reasonable default goal based on today's progress
+        int actualYesterdayTotal = yesterdayTotal;
+        if (yesterdayTotal <= 0) {
+            // Estimate yesterday's total based on current usage pattern
+            // Use current hour to estimate what a full day might be
+            int currentHour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY);
+            if (currentHour < 1) currentHour = 1; // Avoid division by zero
+            
+            if (todayTotal > 0) {
+                // Extrapolate today's total to estimate what yesterday might have been
+                actualYesterdayTotal = Math.max(todayTotal, 100); // Minimum 100kWh goal
+            } else {
+                // Default reasonable goal for a dorm
+                actualYesterdayTotal = 200; // 200kWh default goal
+            }
+            
+            Log.d(TAG, "🎯 No yesterday data - using estimated goal: " + actualYesterdayTotal + " kWh");
+        }
+        
+        // Calculate meter percentages - use simple linear scaling with yesterday as reference point
+        float maxMeterValue = actualYesterdayTotal * 1.5f; // Meter goes up to 150% of yesterday's total
+        float minMeterValue = 0;
+        float meterRange = maxMeterValue - minMeterValue;
+        
+        // Today's progress as percentage of meter (0% = 0 kWh, 100% = 150% of yesterday)
+        float todayPercentage = Math.max(0.02f, Math.min(0.98f, todayTotal / meterRange));
+        
+        // Yesterday's goal position (triangle) - this is our target line
+        float thresholdPercentage = Math.max(0.02f, Math.min(0.98f, actualYesterdayTotal / meterRange));
+        
+        Log.d(TAG, "🎯 Meter Scaling - Max: " + (int)maxMeterValue + " kWh, Today: " + (todayPercentage * 100) + "%, Goal: " + (thresholdPercentage * 100) + "%");
+
+        // Store final values for UI updates
+        final float finalTodayPercentage = todayPercentage;
+        final float finalThresholdPercentage = thresholdPercentage;
+        final int finalActualYesterdayTotal = actualYesterdayTotal; // For color calculation
 
         // Update meter fill height
         meterFill.post(() -> {
             ViewGroup.LayoutParams params = meterFill.getLayoutParams();
             int meterHeight = meterFill.getParent() != null ?
                 ((View) meterFill.getParent()).getHeight() : 0;
-            params.height = (int) (meterHeight * usagePercentage);
+            params.height = (int) (meterHeight * finalTodayPercentage);
             meterFill.setLayoutParams(params);
 
-            // Update meter color based on usage (green to red gradient)
-            // Use drawable background to maintain rounded corners
-            int color = getMeterColor(usagePercentage);
+            // Update meter color based on performance vs yesterday's goal
+            int color = getMeterColorRelative(todayTotal, finalActualYesterdayTotal);
             android.graphics.drawable.GradientDrawable drawable =
                 (android.graphics.drawable.GradientDrawable)
                 getResources().getDrawable(R.drawable.meter_fill_shape, null).mutate();
@@ -915,7 +970,7 @@ public class DashboardActivity extends AppCompatActivity {
             meterFill.setBackground(drawable);
         });
 
-        // Update threshold indicator position
+        // Update threshold indicator position (triangle)
         thresholdIndicator.post(() -> {
             ViewGroup.MarginLayoutParams params =
                 (ViewGroup.MarginLayoutParams) thresholdIndicator.getLayoutParams();
@@ -923,11 +978,13 @@ public class DashboardActivity extends AppCompatActivity {
                 ((View) thresholdIndicator.getParent()).getHeight() : 0;
 
             // Position from bottom (inverse of percentage)
-            int marginBottom = (int) (meterHeight * thresholdPercentage) -
+            int marginBottom = (int) (meterHeight * finalThresholdPercentage) -
                 (thresholdIndicator.getHeight() / 2);
             params.bottomMargin = marginBottom;
             params.topMargin = 0;
             thresholdIndicator.setLayoutParams(params);
+            
+            Log.d(TAG, "🎯 Triangle positioned at " + (finalThresholdPercentage * 100) + "% (Goal: " + finalActualYesterdayTotal + " kWh, Margin: " + marginBottom + "px)");
         });
     }
 
@@ -954,37 +1011,102 @@ public class DashboardActivity extends AppCompatActivity {
     }
 
     /**
+     * Calculate meter color based on today's performance relative to yesterday's goal
+     * Green = Meeting or beating yesterday's goal, Yellow = Close to goal, Red = Exceeding goal (using more energy)
+     */
+    private int getMeterColorRelative(int todayTotal, int yesterdayGoal) {
+        if (yesterdayGoal <= 0) {
+            // No comparison data - use neutral blue
+            return Color.rgb(100, 150, 255);
+        }
+        
+        float ratio = (float) todayTotal / (float) yesterdayGoal;
+        
+        if (ratio <= 0.9f) {
+            // Much better than yesterday (using less energy) - Bright Green
+            return Color.rgb(76, 175, 80);
+        } else if (ratio <= 1.1f) {
+            // Close to yesterday's usage (within 10%) - Yellow/Orange
+            return Color.rgb(255, 193, 7);
+        } else {
+            // Using more energy than yesterday's goal - Red (needs improvement)
+            return Color.rgb(244, 67, 54);
+        }
+    }
+
+    /**
      * Start the live data update cycle
      */
     private void startLiveDataUpdates() {
-        Log.d(TAG, "Starting live data updates with " + UPDATE_INTERVAL + "ms interval");
+        Log.d(TAG, "🚀 Starting smart update system with optimized intervals:");
+        Log.d(TAG, "  - Live Energy: " + (LIVE_ENERGY_INTERVAL/1000) + "s");
+        Log.d(TAG, "  - Potential Energy: " + (POTENTIAL_ENERGY_INTERVAL/60000) + "m"); 
+        Log.d(TAG, "  - Rankings: " + (RANKINGS_INTERVAL/60000) + "m");
         
-        // Show initial data immediately
+        // 🚀 Show initial data immediately if authenticated, otherwise wait for auth callback
         updateHandler.post(() -> {
             if (dashContentFragment != null && dashContentFragment.isAdded()) {
-                updateUIWithLiveData();
+                if (isWillowAuthenticated) {
+                    Log.d(TAG, "🚀 Already authenticated - forcing instant initial update");
+                    forceInstantDataUpdate();
+                } else {
+                    Log.d(TAG, "🔐 Not authenticated yet - initial update will be triggered by auth callback");
+                    // Try regular update which will show authentication status
+                    updateUIWithLiveData();
+                }
             } else {
                 // Retry after a short delay if fragment isn't ready
-                updateHandler.postDelayed(() -> updateUIWithLiveData(), 200);
+                updateHandler.postDelayed(() -> startLiveDataUpdates(), 200);
             }
         });
         
-        // Schedule recurring updates
+        // Schedule recurring updates with shortest interval (live energy)
         scheduleNextUpdate();
     }
     
     /**
-     * Schedule the next data update
+     * Schedule the next data update with smart intervals
      */
     private void scheduleNextUpdate() {
         updateHandler.postDelayed(() -> {
             updateUIWithLiveData();
             scheduleNextUpdate(); // Schedule the next update
-        }, UPDATE_INTERVAL);
+        }, LIVE_ENERGY_INTERVAL); // Use live energy interval as base
     }
     
     /**
-     * Update UI with fresh live data (real or simulated)
+     * 🚀 Force instant data update bypassing all interval checks
+     * Used after authentication or user-requested refresh
+     */
+    private void forceInstantDataUpdate() {
+        if (dashContentFragment == null || !dashContentFragment.isAdded()) {
+            Log.w(TAG, "Fragment not ready for instant update - retrying in 100ms");
+            updateHandler.postDelayed(() -> forceInstantDataUpdate(), 100);
+            return;
+        }
+        
+        if (!isWillowAuthenticated) {
+            Log.w(TAG, "Cannot force update - Willow API not authenticated");
+            return;
+        }
+        
+        Log.d(TAG, "🚀 INSTANT UPDATE: Bypassing interval checks and fetching data immediately");
+        
+        // Always rotate dorms
+        rotateDorm();
+        
+        // Force all updates regardless of intervals
+        fetchRealEnergyData(true, true);
+        
+        // Update all last update times to current time to reset intervals
+        long currentTime = System.currentTimeMillis();
+        lastLiveEnergyUpdate = currentTime;
+        lastPotentialEnergyUpdate = currentTime;
+        lastRankingsUpdate = currentTime;
+    }
+    
+    /**
+     * Update UI with optimized data fetching based on update intervals
      */
     private void updateUIWithLiveData() {
         if (dashContentFragment == null || !dashContentFragment.isAdded()) {
@@ -994,140 +1116,209 @@ public class DashboardActivity extends AppCompatActivity {
             return;
         }
 
-        // Rotate through dorms every few updates
+        long currentTime = System.currentTimeMillis();
+        boolean shouldUpdateLiveEnergy = (currentTime - lastLiveEnergyUpdate) >= LIVE_ENERGY_INTERVAL;
+        boolean shouldUpdatePotentialEnergy = (currentTime - lastPotentialEnergyUpdate) >= POTENTIAL_ENERGY_INTERVAL;
+        boolean shouldUpdateRankings = (currentTime - lastRankingsUpdate) >= RANKINGS_INTERVAL;
+
+        // Always rotate dorms, but only log when actually fetching data
         rotateDorm();
 
-        if (useRealData && isWillowAuthenticated) {
-            // Fetch real data from Willow API
-            fetchRealEnergyData();
+        if (shouldUpdateLiveEnergy) {
+            if (isWillowAuthenticated) {
+                Log.d(TAG, "🔄 Fetching live energy data (due for update)");
+                fetchRealEnergyData(shouldUpdatePotentialEnergy, shouldUpdateRankings);
+                lastLiveEnergyUpdate = currentTime;
+                
+                if (shouldUpdatePotentialEnergy) {
+                    lastPotentialEnergyUpdate = currentTime;
+                }
+                if (shouldUpdateRankings) {
+                    lastRankingsUpdate = currentTime;
+                }
+            } else {
+                Log.e(TAG, "❌ Willow API not authenticated - cannot fetch energy data");
+                dashContentFragment.updateYesterdaysTotal("API Authentication Required ❌");
+            }
         } else {
-            // Use simulated data
-            updateWithSimulatedData();
+            // Skip update - not due yet
+            long timeUntilNext = LIVE_ENERGY_INTERVAL - (currentTime - lastLiveEnergyUpdate);
+            Log.v(TAG, "⏭️ Skipping update (next in " + (timeUntilNext/1000) + "s)");
         }
     }
     
     /**
-     * Fetch real energy data from Willow API
+     * Fetch real energy data from Willow API with conditional updates
      */
-    private void fetchRealEnergyData() {
+    private void fetchRealEnergyData(boolean updatePotentialEnergy, boolean updateRankings) {
         String twinId = getCurrentBuildingTwinId();
         
-        Log.d(TAG, "🌐 Fetching REAL energy data for " + currentDormName + " (Twin ID: " + twinId + ")");
+        Log.d(TAG, "🌐 Fetching live energy data for " + currentDormName + " (Twin: " + twinId + ")");
         
         energyDataManager.getEnergyData(twinId, new WillowEnergyDataManager.EnergyDataCallback() {
             @Override
             public void onSuccess(EnergyDataResponse data) {
                 runOnUiThread(() -> {
-                    updateUIWithRealData(data);
+                    updateUIWithRealData(data, updatePotentialEnergy, updateRankings);
                 });
             }
             
             @Override
             public void onError(String error) {
-                Log.w(TAG, "Failed to fetch real data, falling back to simulated: " + error);
+                Log.e(TAG, "❌ Failed to fetch real data: " + error);
                 runOnUiThread(() -> {
-                    // Fallback to simulated data
-                    updateWithSimulatedData();
+                    dashContentFragment.updateYesterdaysTotal("Data fetch failed: " + error + " ❌");
                 });
             }
         });
     }
     
     /**
-     * Update UI with real energy data from Willow API
+     * Update UI with real energy data from Willow API with selective updates
      */
-    private void updateUIWithRealData(EnergyDataResponse data) {
+    private void updateUIWithRealData(EnergyDataResponse data, boolean updatePotentialEnergy, boolean updateRankings) {
         int liveUsage = data.getCurrentUsageAsInt();
         
         // Update the instance variable for meter updates
         this.currentUsage = liveUsage;
         
-        Log.d(TAG, "🌐 REAL DATA UPDATE: " + liveUsage + "kW for " + data.getBuildingName() + 
-              " (Status: " + data.getStatus() + ")");
-        
-        // Update current usage (main display)
-        dashContentFragment.updateCurrentUsage(liveUsage + "kW");
-        
-        // Update the energy meter with real usage
-        // Use yesterday's usage as threshold (triangle position)
-        double yesterdayThreshold = energyDataManager.getYesterdayEnergyUsage(data.getBuildingName());
-        int dynamicThreshold = yesterdayThreshold > 0 ? (int)yesterdayThreshold : thresholdValue;
-        updateMeter(liveUsage, dynamicThreshold);
-        
-        // 🎮 Update dorm status with DYNAMIC position based on points
-        String position = energyDataManager.getBuildingPosition(data.getBuildingName());
-        String statusText = data.getBuildingName() + " - " + (position != null ? position : "LIVE DATA");
-        dashContentFragment.updateDormStatus(statusText);
-        
-        // 🎮 Use POTENTIAL ENERGY POINTS from gamification system
-        int potentialEnergyPoints = energyDataManager.getDormPotentialEnergy(data.getBuildingName());
-        dashContentFragment.updatePotentialEnergy(potentialEnergyPoints + " Potential Energy");
-        Log.d(TAG, "🎮 Updated potential energy points: " + potentialEnergyPoints);
-        
-        // 🎮 Display TODAY'S total vs YESTERDAY'S total for comparison
-        String dailyTotalText;
+        Log.d(TAG, "🌐 Live: " + liveUsage + "kW (" + data.getBuildingName() + ")");
+
+        // Create DormPointsManager instance for energy tracking
+        DormPointsManager pointsManager = new DormPointsManager(this);
+
+        // 📊 Record today's energy usage for historical tracking
         if (data.getDailyTotalKWh() != null) {
-            dailyTotalText = "Today's Total: " + decimalFormat.format(data.getDailyTotalAsInt()) + "kWh (Real Data ✅)";
-        } else {
-            int calculatedTotal = liveUsage * 24;
-            dailyTotalText = "Estimated Daily: " + decimalFormat.format(calculatedTotal) + "kWh (Calculated)";
+            // Use the proper accumulation method to ensure daily total only increases
+            pointsManager.updateTodayEnergyUsageIfHigher(data.getBuildingName(), data.getDailyTotalAsInt());
+            Log.v(TAG, "📊 Energy recorded: " + data.getDailyTotalAsInt() + " kWh");
         }
-        
-        // Add yesterday's comparison for gamification context
-        double yesterdayUsage = energyDataManager.getYesterdayEnergyUsage(data.getBuildingName());
-        if (yesterdayUsage > 0) {
-            dailyTotalText += " | Yesterday: " + decimalFormat.format((int)yesterdayUsage) + "kWh";
-        }
-        
-        dashContentFragment.updateYesterdaysTotal(dailyTotalText);
-        
-        Log.d(TAG, "✅ Real data update completed successfully - Next update in " + (UPDATE_INTERVAL/1000) + " seconds");
-    }
-    
-    /**
-     * Update UI with simulated data (fallback)
-     */
-    private void updateWithSimulatedData() {
-        // Generate realistic energy usage data for current dorm
-        int baseUsage = getBaseUsageForDorm(currentDormIndex);
-        int liveUsage = baseUsage + random.nextInt(50) - 25; // ±25kW variation
 
-        // Update the instance variable for meter updates
-        this.currentUsage = liveUsage;
-
-        Log.d(TAG, "🔄 SIMULATED UPDATE: " + liveUsage + "kW for " + currentDormName + " (Position: " + dormPositions[currentDormIndex] + ")");
-
-        // Update current usage (main display)
+        // Update current usage display (instantaneous kW)
         dashContentFragment.updateCurrentUsage(liveUsage + "kW");
-
-        // Update the energy meter with new usage
-        // Use yesterday's usage as threshold (triangle position)
-        double yesterdayThreshold = energyDataManager.getYesterdayEnergyUsage(currentDormName);
-        int dynamicThreshold = yesterdayThreshold > 0 ? (int)yesterdayThreshold : thresholdValue;
-        updateMeter(liveUsage, dynamicThreshold);
-
-        // 🎮 Update dorm status with DYNAMIC position based on points
-        String position = energyDataManager.getBuildingPosition(currentDormName);
-        String statusText = currentDormName + " - " + (position != null ? position : dormPositions[currentDormIndex]);
-        dashContentFragment.updateDormStatus(statusText);
-
-        // 🎮 Use POTENTIAL ENERGY POINTS from gamification system
-        int potentialEnergyPoints = energyDataManager.getDormPotentialEnergy(currentDormName);
-        dashContentFragment.updatePotentialEnergy(potentialEnergyPoints + " Potential Energy");
-        Log.d(TAG, "🎮 Updated potential energy points: " + potentialEnergyPoints);
-
-        // 🎮 Display TODAY'S vs YESTERDAY'S usage for gamification context
-        int todayEstimate = liveUsage * 24;
-        double yesterdayUsage = energyDataManager.getYesterdayEnergyUsage(currentDormName);
         
-        String dailyTotalText = "Today's Est: " + decimalFormat.format(todayEstimate) + "kWh (Simulated 🔄)";
-        if (yesterdayUsage > 0) {
-            dailyTotalText += " | Yesterday: " + decimalFormat.format((int)yesterdayUsage) + "kWh";
+        // 🎯 Update the energy meter with TODAY'S TOTAL vs YESTERDAY'S TOTAL (REAL DATA ONLY)
+        double todayTotal = pointsManager.getTodayEnergyUsage(data.getBuildingName());
+        double yesterdayTotal = pointsManager.getYesterdayEnergyUsage(data.getBuildingName());
+        
+        // Ensure today's total shows accumulated energy, not just live usage
+        int todayForMeter;
+        if (todayTotal > 0) {
+            // Use stored accumulated total
+            todayForMeter = (int) todayTotal;
+            Log.d(TAG, "🎯 Using stored today total: " + todayForMeter + " kWh");
+        } else if (data.getDailyTotalKWh() != null && data.getDailyTotalAsInt() > 0) {
+            // Fallback to API daily total if available
+            todayForMeter = data.getDailyTotalAsInt();
+            Log.d(TAG, "🎯 Using API daily total: " + todayForMeter + " kWh");
+        } else {
+            // Estimate based on current usage (assume it's been running for a few hours)
+            int hoursAssumed = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY);
+            if (hoursAssumed < 1) hoursAssumed = 1; // Avoid division by zero
+            todayForMeter = liveUsage * hoursAssumed; // Rough estimate
+            Log.d(TAG, "🎯 Using estimated total: " + todayForMeter + " kWh (based on " + liveUsage + "kW for " + hoursAssumed + "h)");
         }
         
-        dashContentFragment.updateYesterdaysTotal(dailyTotalText);
+        int yesterdayForMeter = (int) yesterdayTotal; // Use actual value, 0 if no data
+        
+        updateMeter(todayForMeter, yesterdayForMeter);
+        Log.d(TAG, "🎯 METER BAR: Today " + todayForMeter + " kWh, Yesterday " + yesterdayForMeter + " kWh");
+        
+        // 🎮 Update dorm status/position (conditional based on ranking update schedule)
+        if (updateRankings) {
+            String position = energyDataManager.getBuildingPosition(data.getBuildingName());
+            cachedDormPosition = position;
+            Log.d(TAG, "🏆 Rankings updated - Position: " + position);
+        }
+        String statusText = data.getBuildingName() + " - " + (cachedDormPosition != null ? cachedDormPosition : "LIVE DATA");
+        dashContentFragment.updateDormStatus(statusText);
+        
+        // 🎮 Update potential energy (conditional - only updates at 10pm daily)
+        if (updatePotentialEnergy) {
+            cachedPotentialEnergy = energyDataManager.getDormPotentialEnergy(data.getBuildingName());
+            Log.d(TAG, "⚡ Potential energy updated: " + cachedPotentialEnergy + " points");
+        }
+        dashContentFragment.updatePotentialEnergy(cachedPotentialEnergy + " Potential Energy");
+        
+        // 🎮 Enhanced display: Today's Total, Yesterday's Total, and Emissions
+        StringBuilder enhancedDisplayText = new StringBuilder();
+        
+        // Today's Total (use same logic as meter for consistency)
+        double todayStoredTotal = pointsManager.getTodayEnergyUsage(data.getBuildingName());
+        int todayDisplayTotal;
+        String todayLabel;
+        
+        if (todayStoredTotal > 0) {
+            todayDisplayTotal = (int) todayStoredTotal;
+            todayLabel = "Today's Total: " + decimalFormat.format(todayDisplayTotal) + "kWh";
+        } else if (data.getDailyTotalKWh() != null && data.getDailyTotalAsInt() > 0) {
+            todayDisplayTotal = data.getDailyTotalAsInt();
+            todayLabel = "Today's Total: " + decimalFormat.format(todayDisplayTotal) + "kWh";
+        } else {
+            // Use same estimation logic as meter
+            int hoursAssumed = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY);
+            if (hoursAssumed < 1) hoursAssumed = 1;
+            todayDisplayTotal = liveUsage * hoursAssumed;
+            todayLabel = "Today's Total: " + decimalFormat.format(todayDisplayTotal) + "kWh (Est. " + hoursAssumed + "h)";
+        }
+        
+        enhancedDisplayText.append(todayLabel);
+        
+        // Yesterday's Total (get from DormPointsManager where data is stored)
+        double yesterdayUsage = pointsManager.getYesterdayEnergyUsage(data.getBuildingName());
+        Log.d(TAG, "🔍 DEBUG Yesterday data: " + yesterdayUsage + " kWh for " + data.getBuildingName());
+        
+        if (yesterdayUsage > 0) {
+            enhancedDisplayText.append("\nYesterday's Total: ")
+                             .append(decimalFormat.format((int)yesterdayUsage))
+                             .append("kWh");
+        } else {
+            enhancedDisplayText.append("\nYesterday's Total: No data available");
+            Log.w(TAG, "🔍 Yesterday data missing for " + data.getBuildingName() + " - checking storage...");
+            
+            // Debug: Check what data exists in SharedPreferences
+            SharedPreferences prefs = getSharedPreferences("points_data", MODE_PRIVATE);
+            java.text.SimpleDateFormat dateFormat = new java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US);
+            String yesterday = dateFormat.format(new java.util.Date(System.currentTimeMillis() - 24 * 60 * 60 * 1000));
+            String key = "today_energy_" + data.getBuildingName() + "_" + yesterday;
+            float storedValue = prefs.getFloat(key, -1f);
+            
+            Log.w(TAG, "🔍 Searched key: " + key + " = " + storedValue);
+            
+            // Show all keys containing this building name
+            java.util.Map<String, ?> allPrefs = prefs.getAll();
+            for (java.util.Map.Entry<String, ?> entry : allPrefs.entrySet()) {
+                if (entry.getKey().contains(data.getBuildingName())) {
+                    Log.d(TAG, "🔍 Found data: " + entry.getKey() + " = " + entry.getValue());
+                }
+            }
+        }
+        
+        // Emissions Calculation (use same total as meter and display for consistency)
+        double todayEmissions = todayDisplayTotal * 0.85; // lbs of CO2 per kWh
+        
+        enhancedDisplayText.append("\nToday's Emissions: ")
+                         .append(decimalFormat.format(todayEmissions))
+                         .append(" lbs CO₂");
+        
+        dashContentFragment.updateYesterdaysTotal(enhancedDisplayText.toString());
+        
+        Log.v(TAG, "✅ UI updated - Next live energy update in " + (LIVE_ENERGY_INTERVAL/1000) + "s");
+    }
 
-        Log.d(TAG, "✅ Simulated data update completed successfully - Next update in " + (UPDATE_INTERVAL/1000) + " seconds");
+    /**
+     * Backward compatibility wrapper for old method signature
+     */
+    private void updateUIWithRealData(EnergyDataResponse data) {
+        // Call new method with all updates enabled for backward compatibility
+        updateUIWithRealData(data, true, true);
+    }
+
+    /**
+     * Backward compatibility wrapper for old fetchRealEnergyData method
+     */
+    private void fetchRealEnergyData() {
+        fetchRealEnergyData(true, true);
     }
     
     /**
@@ -1153,74 +1344,6 @@ public class DashboardActivity extends AppCompatActivity {
         // Points should only be updated during daily check-in or scheduled energy checks
 
         //end of dorm points code
-    }
-    
-    /**
-     * Manual refresh - updates data for user's current dorm without switching
-     */
-    public void manualRefresh() {
-        Log.d(TAG, "Manual refresh requested for user's dorm: " + currentDormName);
-        
-        // Update UI immediately for current user's dorm (no dorm switching)
-        updateUIWithLiveData();
-        
-        Log.d(TAG, "Manual refresh completed for: " + currentDormName);
-    }
-    
-    /**
-     * 🎮 Manual energy check - for testing gamification logic
-     */
-    public void manualEnergyCheck() {
-        Log.d(TAG, "🎮 Manual energy check requested");
-        
-        if (energyDataManager != null) {
-            // Run the complete test suite first (for development/testing)
-            boolean testsPassed = GamificationTester.runCompleteTest(this);
-            
-            if (testsPassed) {
-                Log.d(TAG, "🎮 ✅ All gamification tests passed!");
-            } else {
-                Log.w(TAG, "🎮 ⚠️ Some gamification tests failed");
-            }
-            
-            // Then perform normal manual energy check
-            Map<String, Integer> pointChanges = energyDataManager.performManualEnergyCheck();
-            
-            // Log the results
-            for (Map.Entry<String, Integer> entry : pointChanges.entrySet()) {
-                Log.d(TAG, String.format("🎮 %s: %+d points", entry.getKey(), entry.getValue()));
-            }
-            
-            // Show debug info
-            String debugInfo = energyDataManager.getGamificationDebugInfo();
-            Log.d(TAG, "🎮 Gamification Debug:\n" + debugInfo);
-            
-            // Update UI to reflect new positions
-            updateUIWithLiveData();
-        }
-        
-        Log.d(TAG, "🎮 Manual energy check completed");
-    }
-    
-    /**
-     * Get base energy usage for different dorms (dynamic calculation based on real factors)
-     */
-    private int getBaseUsageForDorm(int dormIndex) {
-        // Dynamic calculation based on time of day and building characteristics
-        // This removes hardcoded values and makes it more realistic
-        int timeOfDayMultiplier = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY);
-        int baseLoad = 200 + (timeOfDayMultiplier * 5); // Base load varies with time
-        
-        // Building efficiency factor (based on actual building characteristics)
-        double efficiencyFactor = 1.0;
-        switch (dormIndex) {
-            case 0: efficiencyFactor = 0.85; // Tinsley - newer building, more efficient
-            case 1: efficiencyFactor = 1.0;  // Gabaldon - average efficiency
-            case 2: efficiencyFactor = 1.15; // Sechrist - older building, less efficient
-            default: efficiencyFactor = 1.0;
-        }
-        
-        return (int) (baseLoad * efficiencyFactor);
     }
     
     @Override

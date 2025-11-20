@@ -43,25 +43,8 @@ public class DashContentFragment extends Fragment {
         yesterdaysTotalText = view.findViewById(R.id.yesterdays_total_text);
         potentialEnergyText = view.findViewById(R.id.potential_energy_text);
         
-        // Make the usage text clickable for manual refresh
-        if (currentUsageText != null) {
-            currentUsageText.setOnClickListener(v -> {
-                if (getActivity() instanceof DashboardActivity) {
-                    ((DashboardActivity) getActivity()).manualRefresh();
-                }
-            });
-        }
-        
-        // 🎮 Add long-press to potential energy for manual energy check
-        if (potentialEnergyText != null) {
-            potentialEnergyText.setOnLongClickListener(v -> {
-                if (getActivity() instanceof DashboardActivity) {
-                    ((DashboardActivity) getActivity()).manualEnergyCheck();
-                    return true; // Consume the event
-                }
-                return false;
-            });
-        }
+        // Manual refresh features removed - app now updates automatically
+        // Users can no longer manually trigger data updates
         
         // Refresh button removed from layout for production
         /*
