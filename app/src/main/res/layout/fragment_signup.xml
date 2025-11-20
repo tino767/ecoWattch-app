@@ -105,9 +105,13 @@
             app:boxStrokeWidth="0dp"
             app:boxStrokeWidthFocused="2dp"
             app:endIconTint="@color/text_red"
+            app:placeholderTextColor="@color/white"
+            app:prefixTextColor="@color/white"
+            app:suffixTextColor="@color/white"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="24dp">
+            android:layout_marginBottom="24dp"
+            android:textColorHint="@color/white">
 
             <AutoCompleteTextView
                 android:id="@+id/dormitory"

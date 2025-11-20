@@ -2,11 +2,11 @@
     <!-- Base application theme. -->
     <style name="Base.Theme.EcoWattchTechDemo" parent="Theme.Material3.DayNight.NoActionBar">
         <!-- EcoWattch Custom Colors -->
-        <item name="colorPrimary">@color/accent_green</item>
-        <item name="colorPrimaryVariant">@color/accent_green_light</item>
+        <item name="colorPrimary">@color/text_red</item>
+        <item name="colorPrimaryVariant">@color/text_red</item>
         <item name="colorOnPrimary">@color/white</item>
-        <item name="colorSecondary">@color/warning_orange</item>
-        <item name="colorSecondaryVariant">@color/warning_orange</item>
+        <item name="colorSecondary">@color/text_red</item>
+        <item name="colorSecondaryVariant">@color/text_red</item>
         <item name="colorOnSecondary">@color/white</item>
         <item name="android:colorBackground">@color/background_dark</item>
         <item name="colorSurface">@color/card_background</item>
