@@ -305,16 +305,12 @@ public class DashboardActivity extends AppCompatActivity {
         // Initialize shop points display
         updateShopPointsDisplay();
 
-        // Disable Records button (Coming Soon)
-        records.setEnabled(false);
-        records.setAlpha(0.5f); // Visual indicator that it's disabled
-
+        // Records button now enabled with full functionality
         records.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                // Disabled - Coming Soon
-                // Intent intent = new Intent(DashboardActivity.this, RecordsActivity.class);
-                // startActivity(intent);
+                Intent intent = new Intent(DashboardActivity.this, RecordsActivity.class);
+                startActivity(intent);
             }
         });
 
