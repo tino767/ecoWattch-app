@@ -174,16 +174,18 @@
             </LinearLayout>
 
                 <TextView
+                    android:id="@+id/shop_points_text"
                     android:tag="dynamic_text"
-                    android:layout_width="wrap_content"
+                    android:layout_width="120dp"
                     android:layout_height="wrap_content"
                     android:background="@drawable/pill_background"
                     android:fontFamily="@font/matrixtype_display"
                     android:paddingHorizontal="12dp"
                     android:paddingVertical="4dp"
-                    android:text="Energy Shop"
+                    android:text="0 pts"
                     android:textColor="@color/white"
-                    android:textSize="12sp" />
+                    android:textSize="12sp"
+                    android:gravity="center" />
         </LinearLayout>
 
     </LinearLayout>
