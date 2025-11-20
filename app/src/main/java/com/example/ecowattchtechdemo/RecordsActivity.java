@@ -7,6 +7,8 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.animation.ObjectAnimator;
+import android.view.animation.AccelerateDecelerateInterpolator;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
@@ -64,8 +66,11 @@ public class RecordsActivity extends AppCompatActivity {
         // Update energy label for initial selected day
         updateEnergyLabel();
 
-        // Setup back button
-        backButton.setOnClickListener(view -> finish());
+        // Setup back button with animation
+        backButton.setOnClickListener(view -> {
+            animateClickFeedback(view);
+            view.postDelayed(this::finish, 150);
+        });
     }
 
     /**
@@ -227,13 +232,14 @@ public class RecordsActivity extends AppCompatActivity {
     }
 
     /**
-     * Populate the all-time leaderboard rankings
+     * Populate the all-time leaderboard rankings with stagger animation
      */
     private void populateAllTimeLeaderboard() {
         allTimeRankingsContainer.removeAllViews();
 
         for (int i = 0; i < allTimeLeaderboard.size(); i++) {
             LeaderboardEntry entry = allTimeLeaderboard.get(i);
+            final int itemIndex = i;
 
             // Create horizontal layout for each ranking item
             LinearLayout itemLayout = new LinearLayout(this);
@@ -273,18 +279,37 @@ public class RecordsActivity extends AppCompatActivity {
 
             itemLayout.addView(leftText);
             itemLayout.addView(rightText);
+
+            // Add stagger animation
+            itemLayout.setAlpha(0f);
+            itemLayout.setTranslationY(20);
             allTimeRankingsContainer.addView(itemLayout);
+
+            // Animate entrance with stagger
+            itemLayout.postDelayed(() -> {
+                ObjectAnimator alphaAnim = ObjectAnimator.ofFloat(itemLayout, "alpha", 0f, 1f);
+                ObjectAnimator translateAnim = ObjectAnimator.ofFloat(itemLayout, "translationY", 20f, 0f);
+
+                alphaAnim.setDuration(300);
+                translateAnim.setDuration(300);
+                alphaAnim.setInterpolator(new android.view.animation.LinearInterpolator());
+                translateAnim.setInterpolator(new android.view.animation.AccelerateDecelerateInterpolator());
+
+                alphaAnim.start();
+                translateAnim.start();
+            }, (long) itemIndex * 100); // 100ms stagger between items
         }
     }
 
     /**
-     * Populate the user streaks leaderboard
+     * Populate the user streaks leaderboard with stagger animation
      */
     private void populateStreaksLeaderboard() {
         streaksRankingsContainer.removeAllViews();
 
         for (int i = 0; i < streaksLeaderboard.size(); i++) {
             StreakEntry entry = streaksLeaderboard.get(i);
+            final int itemIndex = i;
 
             // Create horizontal layout for each streak item
             LinearLayout itemLayout = new LinearLayout(this);
@@ -324,7 +349,25 @@ public class RecordsActivity extends AppCompatActivity {
 
             itemLayout.addView(leftText);
             itemLayout.addView(rightText);
+
+            // Add stagger animation
+            itemLayout.setAlpha(0f);
+            itemLayout.setTranslationY(20);
             streaksRankingsContainer.addView(itemLayout);
+
+            // Animate entrance with stagger
+            itemLayout.postDelayed(() -> {
+                ObjectAnimator alphaAnim = ObjectAnimator.ofFloat(itemLayout, "alpha", 0f, 1f);
+                ObjectAnimator translateAnim = ObjectAnimator.ofFloat(itemLayout, "translationY", 20f, 0f);
+
+                alphaAnim.setDuration(300);
+                translateAnim.setDuration(300);
+                alphaAnim.setInterpolator(new android.view.animation.LinearInterpolator());
+                translateAnim.setInterpolator(new android.view.animation.AccelerateDecelerateInterpolator());
+
+                alphaAnim.start();
+                translateAnim.start();
+            }, (long) itemIndex * 100); // 100ms stagger between items
         }
     }
 
@@ -518,5 +561,22 @@ public class RecordsActivity extends AppCompatActivity {
         //         // Handle error
         //     }
         // });
+    }
+
+    /**
+     * Animate click feedback for interactive elements
+     * Creates a scale-down and scale-up effect for button press
+     */
+    private void animateClickFeedback(View view) {
+        ObjectAnimator scaleX = ObjectAnimator.ofFloat(view, "scaleX", 1.0f, 0.95f, 1.0f);
+        ObjectAnimator scaleY = ObjectAnimator.ofFloat(view, "scaleY", 1.0f, 0.95f, 1.0f);
+
+        scaleX.setDuration(200);
+        scaleY.setDuration(200);
+        scaleX.setInterpolator(new android.view.animation.AccelerateDecelerateInterpolator());
+        scaleY.setInterpolator(new android.view.animation.AccelerateDecelerateInterpolator());
+
+        scaleX.start();
+        scaleY.start();
     }
 }
