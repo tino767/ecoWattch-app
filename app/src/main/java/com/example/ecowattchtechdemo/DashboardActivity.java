@@ -466,9 +466,10 @@ public class DashboardActivity extends AppCompatActivity {
             TextView tasksCompleted = findViewById(R.id.tasks_completed);
             if (tasksCompleted != null) {
                 tasksCompleted.setVisibility(View.VISIBLE);
-                checklistItem1.setVisibility(View.INVISIBLE);
-                checklistItem2.setVisibility(View.INVISIBLE);
-                checklistItem3.setVisibility(View.INVISIBLE);
+                // Grey out completed tasks instead of hiding them
+                checklistItem1.setAlpha(0.5f);
+                checklistItem2.setAlpha(0.5f);
+                checklistItem3.setAlpha(0.5f);
             }
         }
         
@@ -701,14 +702,15 @@ public class DashboardActivity extends AppCompatActivity {
 
             // Trigger daily check-in when all tasks are completed
             performDailyCheckin();
-            
+
             // Show completion UI
             TextView tasksCompleted = findViewById(R.id.tasks_completed);
             if (tasksCompleted != null) {
                 tasksCompleted.setVisibility(View.VISIBLE);
-                checklistItem1.setVisibility(View.INVISIBLE);
-                checklistItem2.setVisibility(View.INVISIBLE);
-                checklistItem3.setVisibility(View.INVISIBLE);
+                // Grey out completed tasks instead of hiding them
+                checklistItem1.setAlpha(0.5f);
+                checklistItem2.setAlpha(0.5f);
+                checklistItem3.setAlpha(0.5f);
             }
             
             Log.d(TAG, "🎉 All daily tasks completed! Daily check-in triggered.");
