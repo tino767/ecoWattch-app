@@ -26,49 +26,29 @@
         android:layout_centerHorizontal="true"
         android:layout_marginHorizontal="16dp"
         android:layout_marginTop="250dp"
-        android:gravity="center_vertical"
-        android:orientation="horizontal">
+        android:gravity="center"
+        android:orientation="vertical">
 
-        <!-- User Avatar -->
-        <ImageView
-            android:tag="primary_color"
-            android:layout_width="60dp"
-            android:layout_height="60dp"
-            android:layout_marginEnd="16dp"
-            android:background="@drawable/button_background"
-            android:padding="16dp"
-            android:src="@android:drawable/ic_menu_preferences"
-            app:tint="@color/white" />
-
-        <!-- User Info -->
-        <LinearLayout
-            android:layout_width="0dp"
+        <TextView
+            android:id="@+id/username_text"
+            android:tag="dynamic_text"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical">
+            android:fontFamily="@font/matrixtype_display"
+            android:text="Loading..."
+            android:textColor="@color/white"
+            android:textSize="18sp"
+            android:textStyle="bold" />
 
-            <TextView
-                android:id="@+id/username_text"
-                android:tag="dynamic_text"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:fontFamily="@font/matrixtype_display"
-                android:text="Loading..."
-                android:textColor="@color/white"
-                android:textSize="18sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/dormitory_text"
-                android:tag="dynamic_text"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:fontFamily="@font/matrixtype_display"
-                android:text="Loading..."
-                android:textColor="@color/white"
-                android:textSize="14sp" />
-
-        </LinearLayout>
+        <TextView
+            android:id="@+id/dormitory_text"
+            android:tag="dynamic_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/matrixtype_display"
+            android:text="Loading..."
+            android:textColor="@color/white"
+            android:textSize="14sp" />
 
     </LinearLayout>
 
