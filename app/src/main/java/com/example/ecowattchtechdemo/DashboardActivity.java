@@ -41,6 +41,7 @@ public class DashboardActivity extends AppCompatActivity {
     private Handler updateHandler;
     private Random random;
     private DecimalFormat decimalFormat;
+    private TextView shopPointsText; // Reference to shop button's points display
     
     // Live data configuration
     private String currentDormName = "TINSLEY";
@@ -103,6 +104,14 @@ public class DashboardActivity extends AppCompatActivity {
     protected void onStart() {
         super.onStart();
         tm.applyTheme();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Refresh shop points display when returning from shop or other activities
+        updateShopPointsDisplay();
+        Log.d(TAG, "onResume: Refreshed shop points display");
     }
     
     private void initializeComponents() {
@@ -228,16 +237,19 @@ public class DashboardActivity extends AppCompatActivity {
             Log.w(TAG, "Energy data manager not initialized, skipping daily check-in");
             return;
         }
-        
+
         try {
-            com.example.ecowattchtechdemo.gamification.DormPointsManager pointsManager = 
+            com.example.ecowattchtechdemo.gamification.DormPointsManager pointsManager =
                 new com.example.ecowattchtechdemo.gamification.DormPointsManager(this);
-            
+
             // Only check-in for the current user's dorm, not all dorms
             boolean checkedIn = pointsManager.recordDailyCheckin(currentDormName);
             if (checkedIn) {
                 Log.d(TAG, "🎯 Daily check-in successful for " + currentDormName + ": +25 spendable points");
-                
+
+                // Update shop button to show new points total
+                updateShopPointsDisplay();
+
                 // Show success message to user
                 runOnUiThread(() -> {
                     Toast.makeText(this, "Daily check-in complete! +25 spendable points earned 💰", Toast.LENGTH_LONG).show();
@@ -248,9 +260,37 @@ public class DashboardActivity extends AppCompatActivity {
                     Toast.makeText(this, "You've already checked in today!", Toast.LENGTH_SHORT).show();
                 });
             }
-            
+
         } catch (Exception e) {
             Log.e(TAG, "Error during daily check-in process", e);
+        }
+    }
+
+    /**
+     * Update the shop button to display current spendable points
+     */
+    private void updateShopPointsDisplay() {
+        if (shopPointsText == null) {
+            Log.w(TAG, "Shop points text view not initialized yet");
+            return;
+        }
+
+        try {
+            com.example.ecowattchtechdemo.gamification.DormPointsManager pointsManager =
+                new com.example.ecowattchtechdemo.gamification.DormPointsManager(this);
+
+            int spendablePoints = pointsManager.getIndividualSpendablePoints();
+
+            // Format the points with comma separators (e.g., "1,250 pts")
+            String formattedPoints = decimalFormat.format(spendablePoints) + " pts";
+
+            shopPointsText.setText(formattedPoints);
+
+            Log.d(TAG, "💰 Shop button updated with spendable points: " + formattedPoints);
+
+        } catch (Exception e) {
+            Log.e(TAG, "Error updating shop points display", e);
+            shopPointsText.setText("Shop");
         }
     }
     
@@ -258,6 +298,12 @@ public class DashboardActivity extends AppCompatActivity {
         records = findViewById(R.id.records_button);
         shop = findViewById(R.id.shop_button);
         hamburgerButton = findViewById(R.id.hamburger_button);
+
+        // Find the shop points text view (the TextView inside the shop button)
+        shopPointsText = shop.findViewById(R.id.shop_points_text);
+
+        // Initialize shop points display
+        updateShopPointsDisplay();
 
         // Records button now enabled with full functionality
         records.setOnClickListener(new View.OnClickListener() {
@@ -416,9 +462,10 @@ public class DashboardActivity extends AppCompatActivity {
             TextView tasksCompleted = findViewById(R.id.tasks_completed);
             if (tasksCompleted != null) {
                 tasksCompleted.setVisibility(View.VISIBLE);
-                checklistItem1.setVisibility(View.INVISIBLE);
-                checklistItem2.setVisibility(View.INVISIBLE);
-                checklistItem3.setVisibility(View.INVISIBLE);
+                // Grey out completed tasks instead of hiding them
+                checklistItem1.setAlpha(0.5f);
+                checklistItem2.setAlpha(0.5f);
+                checklistItem3.setAlpha(0.5f);
             }
         }
         
@@ -651,14 +698,15 @@ public class DashboardActivity extends AppCompatActivity {
 
             // Trigger daily check-in when all tasks are completed
             performDailyCheckin();
-            
+
             // Show completion UI
             TextView tasksCompleted = findViewById(R.id.tasks_completed);
             if (tasksCompleted != null) {
                 tasksCompleted.setVisibility(View.VISIBLE);
-                checklistItem1.setVisibility(View.INVISIBLE);
-                checklistItem2.setVisibility(View.INVISIBLE);
-                checklistItem3.setVisibility(View.INVISIBLE);
+                // Grey out completed tasks instead of hiding them
+                checklistItem1.setAlpha(0.5f);
+                checklistItem2.setAlpha(0.5f);
+                checklistItem3.setAlpha(0.5f);
             }
             
             Log.d(TAG, "🎉 All daily tasks completed! Daily check-in triggered.");
