@@ -2,8 +2,9 @@ package com.example.ecowattchtechdemo;
 
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
+import com.example.ecowattchtechdemo.BuildConfig;
 public class ApiClient {
-    private static final String BASE_URL = "http://10.0.2.2:3000"; // No trailing slash
+    public static final String BASE_URL = "http://" + BuildConfig.SERVER_IP; // No trailing slash
     private static Retrofit retrofit;
 
     public static Retrofit getClient() {

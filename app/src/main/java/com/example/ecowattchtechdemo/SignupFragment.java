@@ -32,6 +32,8 @@ import org.json.JSONObject;
 import java.util.Calendar;
 import java.util.concurrent.TimeUnit;
 
+import com.example.ecowattchtechdemo.ApiClient;
+
 public class SignupFragment extends Fragment {
     Button signupButton;
     TextView loginLink;
@@ -78,7 +80,7 @@ public class SignupFragment extends Fragment {
                 e.printStackTrace();
             }
 
-            String url = "http://10.0.2.2:3000/signup";  // local API on emulator
+            String url = ApiClient.BASE_URL + "/signup";
 
             JsonObjectRequest request = new JsonObjectRequest(Request.Method.POST, url, jsonBody,
                     response -> {

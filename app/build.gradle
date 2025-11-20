@@ -2,12 +2,20 @@ plugins {
     alias(libs.plugins.android.application)
 }
 
+
+/*
 // Load properties from local.properties file
 def localPropertiesFile = rootProject.file("local.properties")
 def localProperties = new Properties()
 if (localPropertiesFile.exists()) {
     localProperties.load(new FileInputStream(localPropertiesFile))
 }
+ */
+
+def localProperties = new Properties()
+localProperties.load(new FileInputStream(rootProject.file("local.properties")))
+
+def apiIp = localProperties.getProperty('SERVER_IP')
 
 android {
     namespace 'com.example.ecowattchtechdemo'
@@ -36,8 +44,12 @@ android {
         buildConfigField "String", "TWIN_ID_TINSLEY", "\"${localProperties.getProperty('TWIN_ID_TINSLEY', '')}\""
         buildConfigField "String", "TWIN_ID_GABALDON", "\"${localProperties.getProperty('TWIN_ID_GABALDON', '')}\""
         buildConfigField "String", "TWIN_ID_SECHRIST", "\"${localProperties.getProperty('TWIN_ID_SECHRIST', '')}\""
+
+        //get the ip address of the server from local properties
+        buildConfigField "String", "SERVER_IP", "\"${localProperties.getProperty('SERVER_IP', '')}\""
         
         buildConfigField "int", "SERVER_PORT", "${localProperties.getProperty('SERVER_PORT', '3000')}"
+
     }
 
     buildTypes {
@@ -86,6 +98,9 @@ dependencies {
     testImplementation libs.junit
     androidTestImplementation libs.ext.junit
     androidTestImplementation libs.espresso.core
+
+    //for the palette color extraction
+    implementation 'androidx.palette:palette:1.0.0'
 
     //stuff to make post requests work for the log in system
     implementation 'com.squareup.retrofit2:retrofit:2.9.0'
