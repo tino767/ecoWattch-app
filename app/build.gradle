@@ -33,9 +33,15 @@ android {
         buildConfigField "String", "WILLOW_CLIENT_ID", "\"${localProperties.getProperty('WILLOW_CLIENT_ID', '')}\""
         buildConfigField "String", "WILLOW_CLIENT_SECRET", "\"${localProperties.getProperty('WILLOW_CLIENT_SECRET', '')}\""
         
+        // Power Twin IDs (kW - instantaneous power consumption)
         buildConfigField "String", "TWIN_ID_TINSLEY", "\"${localProperties.getProperty('TWIN_ID_TINSLEY', '')}\""
         buildConfigField "String", "TWIN_ID_GABALDON", "\"${localProperties.getProperty('TWIN_ID_GABALDON', '')}\""
         buildConfigField "String", "TWIN_ID_SECHRIST", "\"${localProperties.getProperty('TWIN_ID_SECHRIST', '')}\""
+        
+        // Energy Twin IDs (kWh - cumulative energy consumption)
+        buildConfigField "String", "TWIN_ID_TINSLEY_ENERGY", "\"${localProperties.getProperty('TWIN_ID_TINSLEY_ENERGY', '')}\""
+        buildConfigField "String", "TWIN_ID_GABALDON_ENERGY", "\"${localProperties.getProperty('TWIN_ID_GABALDON_ENERGY', '')}\""
+        buildConfigField "String", "TWIN_ID_SECHRIST_ENERGY", "\"${localProperties.getProperty('TWIN_ID_SECHRIST_ENERGY', '')}\""
         
         buildConfigField "int", "SERVER_PORT", "${localProperties.getProperty('SERVER_PORT', '3000')}"
     }

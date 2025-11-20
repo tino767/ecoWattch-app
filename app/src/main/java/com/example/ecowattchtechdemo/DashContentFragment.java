@@ -79,6 +79,27 @@ public class DashContentFragment extends Fragment {
     public void updateDormStatus(String dormInfo) {
         if (usernameText != null) {
             usernameText.setText(dormInfo);
+            
+            // Set up double-tap gesture to refresh rankings
+            usernameText.setOnClickListener(new View.OnClickListener() {
+                private long lastClickTime = 0;
+                
+                @Override
+                public void onClick(View v) {
+                    long currentTime = System.currentTimeMillis();
+                    if (currentTime - lastClickTime < 500) { // Double tap detected (within 500ms)
+                        // Refresh leaderboard rankings
+                        if (getActivity() instanceof DashboardActivity) {
+                            ((DashboardActivity) getActivity()).refreshLeaderboardRankings();
+                            // Show feedback to user
+                            android.widget.Toast.makeText(getContext(), "🏆 Refreshing leaderboard...", android.widget.Toast.LENGTH_SHORT).show();
+                        }
+                        lastClickTime = 0; // Reset to prevent triple-tap
+                    } else {
+                        lastClickTime = currentTime;
+                    }
+                }
+            });
         }
     }
     

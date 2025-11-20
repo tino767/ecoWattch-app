@@ -214,51 +214,12 @@ public class DormPointsManager {
     
     /**
      * Get yesterday's energy usage for a dorm
-     * If no data exists, creates a reasonable sample for meter functionality
+     * Returns actual stored data or 0 if no data exists
      */
     public double getYesterdayEnergyUsage(String dormName) {
         String yesterday = getYesterdayDate();
         String key = TODAY_ENERGY_PREFIX + dormName + "_" + yesterday;
-        float yesterdayData = prefs.getFloat(key, 0.0f);
-        
-        // If no yesterday data exists, create reasonable sample data for meter functionality
-        if (yesterdayData == 0.0f) {
-            Log.d(TAG, "🎯 No yesterday data for " + dormName + " - creating sample data for meter");
-            createSampleYesterdayData(dormName);
-            yesterdayData = prefs.getFloat(key, 0.0f);
-        }
-        
-        return yesterdayData;
-    }
-    
-    /**
-     * Create sample yesterday data for meter functionality when no historical data exists
-     */
-    private void createSampleYesterdayData(String dormName) {
-        String yesterday = getYesterdayDate();
-        String key = TODAY_ENERGY_PREFIX + dormName + "_" + yesterday;
-        
-        // Create reasonable sample data based on dorm
-        int sampleData;
-        switch (dormName.toUpperCase()) {
-            case "TINSLEY":
-                sampleData = 250; // 250 kWh
-                break;
-            case "GABALDON":
-                sampleData = 200; // 200 kWh
-                break;
-            case "SECHRIST":
-                sampleData = 180; // 180 kWh
-                break;
-            default:
-                sampleData = 220; // Default 220 kWh
-        }
-        
-        SharedPreferences.Editor editor = prefs.edit();
-        editor.putFloat(key, sampleData);
-        editor.apply();
-        
-        Log.d(TAG, "✅ Created sample yesterday data for " + dormName + ": " + sampleData + " kWh");
+        return prefs.getFloat(key, 0.0f);
     }
     
     /**
