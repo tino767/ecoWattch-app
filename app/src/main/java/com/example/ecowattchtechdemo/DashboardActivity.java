@@ -1,5 +1,6 @@
 package com.example.ecowattchtechdemo;
 
+import android.animation.ValueAnimator;
 import android.graphics.Color;
 import android.os.Bundle;
 import androidx.appcompat.app.AppCompatActivity;
@@ -7,6 +8,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.content.Intent;
 import android.widget.LinearLayout;
+import android.widget.RelativeLayout;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
@@ -18,6 +20,9 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.content.SharedPreferences;
 import android.widget.Toast;
+import android.view.animation.AnimationUtils;
+import android.animation.ObjectAnimator;
+import android.view.animation.AccelerateDecelerateInterpolator;
 
 // Willow API imports
 import com.android.volley.Request;
@@ -42,7 +47,10 @@ public class DashboardActivity extends AppCompatActivity {
     private Random random;
     private DecimalFormat decimalFormat;
     private TextView shopPointsText; // Reference to shop button's points display
-    
+
+    // Store previous values for counter animations
+    private int previousShopPoints = 0;
+
     // Live data configuration
     private String currentDormName = "TINSLEY";
     private static final long UPDATE_INTERVAL = 60000; // 1 minute instead of 10 seconds to reduce constant refresh
@@ -267,7 +275,7 @@ public class DashboardActivity extends AppCompatActivity {
     }
 
     /**
-     * Update the shop button to display current spendable points
+     * Update the shop button to display current spendable points with animated counter
      */
     private void updateShopPointsDisplay() {
         if (shopPointsText == null) {
@@ -281,17 +289,38 @@ public class DashboardActivity extends AppCompatActivity {
 
             int spendablePoints = pointsManager.getIndividualSpendablePoints();
 
-            // Format the points with comma separators (e.g., "1,250 pts")
-            String formattedPoints = decimalFormat.format(spendablePoints) + " pts";
+            // Animate the counter from previous value to new value
+            animateShopPointsCounter(previousShopPoints, spendablePoints);
+            previousShopPoints = spendablePoints;
 
-            shopPointsText.setText(formattedPoints);
-
-            Log.d(TAG, "💰 Shop button updated with spendable points: " + formattedPoints);
+            Log.d(TAG, "💰 Shop button updated with spendable points: " + spendablePoints);
 
         } catch (Exception e) {
             Log.e(TAG, "Error updating shop points display", e);
             shopPointsText.setText("Shop");
         }
+    }
+
+    /**
+     * Animates the shop points counter from old value to new value
+     */
+    private void animateShopPointsCounter(int from, int to) {
+        if (from == to) {
+            // No change, just update text
+            shopPointsText.setText(decimalFormat.format(to) + " pts");
+            return;
+        }
+
+        ValueAnimator animator = ValueAnimator.ofInt(from, to);
+        animator.setDuration(800); // 800ms for smooth counting
+        animator.setInterpolator(new AccelerateDecelerateInterpolator());
+
+        animator.addUpdateListener(animation -> {
+            int value = (int) animation.getAnimatedValue();
+            shopPointsText.setText(decimalFormat.format(value) + " pts");
+        });
+
+        animator.start();
     }
     
     private void setupNavigationButtons() {
@@ -309,16 +338,24 @@ public class DashboardActivity extends AppCompatActivity {
         records.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Intent intent = new Intent(DashboardActivity.this, RecordsActivity.class);
-                startActivity(intent);
+                animateClickFeedback(view);
+                view.postDelayed(() -> {
+                    Intent intent = new Intent(DashboardActivity.this, RecordsActivity.class);
+                    startActivity(intent, android.app.ActivityOptions.makeCustomAnimation(
+                        DashboardActivity.this, R.anim.slide_in_left, R.anim.slide_out_right).toBundle());
+                }, 150);
             }
         });
 
         shop.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Intent intent = new Intent(DashboardActivity.this, ShopActivity.class);
-                startActivity(intent);
+                animateClickFeedback(view);
+                view.postDelayed(() -> {
+                    Intent intent = new Intent(DashboardActivity.this, ShopActivity.class);
+                    startActivity(intent, android.app.ActivityOptions.makeCustomAnimation(
+                        DashboardActivity.this, R.anim.slide_in_right, R.anim.slide_out_left).toBundle());
+                }, 150);
             }
         });
 
@@ -326,7 +363,8 @@ public class DashboardActivity extends AppCompatActivity {
         hamburgerButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                toggleModal();
+                animateClickFeedback(view);
+                view.postDelayed(() -> toggleModal(), 150);
             }
         });
 
@@ -371,18 +409,42 @@ public class DashboardActivity extends AppCompatActivity {
         loadUserProfile();
 
         // Set up profile logout button
-        profileLogoutButton.setOnClickListener(v -> logout());
+        profileLogoutButton.setOnClickListener(v -> {
+            animateClickFeedback(v);
+            v.postDelayed(() -> logout(), 150);
+        });
 
-        // Set up tab click listeners
-        tabAlerts.setOnClickListener(v -> switchTab(0));
-        tabNotifications.setOnClickListener(v -> switchTab(1));
-        tabSettings.setOnClickListener(v -> switchTab(2));
-        tabProfile.setOnClickListener(v -> switchTab(3));
+        // Set up tab click listeners with animations
+        tabAlerts.setOnClickListener(v -> {
+            animateClickFeedback(v);
+            v.postDelayed(() -> switchTab(0), 100);
+        });
+        tabNotifications.setOnClickListener(v -> {
+            animateClickFeedback(v);
+            v.postDelayed(() -> switchTab(1), 100);
+        });
+        tabSettings.setOnClickListener(v -> {
+            animateClickFeedback(v);
+            v.postDelayed(() -> switchTab(2), 100);
+        });
+        tabProfile.setOnClickListener(v -> {
+            animateClickFeedback(v);
+            v.postDelayed(() -> switchTab(3), 100);
+        });
 
-        // Set up checklist click listeners
-        checklistItem1.setOnClickListener(v -> markItemComplete(1));
-        checklistItem2.setOnClickListener(v -> markItemComplete(2));
-        checklistItem3.setOnClickListener(v -> markItemComplete(3));
+        // Set up checklist click listeners with animations
+        checklistItem1.setOnClickListener(v -> {
+            animateClickFeedback(v);
+            v.postDelayed(() -> markItemComplete(1), 100);
+        });
+        checklistItem2.setOnClickListener(v -> {
+            animateClickFeedback(v);
+            v.postDelayed(() -> markItemComplete(2), 100);
+        });
+        checklistItem3.setOnClickListener(v -> {
+            animateClickFeedback(v);
+            v.postDelayed(() -> markItemComplete(3), 100);
+        });
 
         // Load current checklist state
         loadChecklistState();
@@ -490,11 +552,30 @@ public class DashboardActivity extends AppCompatActivity {
     }
 
     /**
-     * Show the utility modal
+     * Show the utility modal with entrance animation
      */
     private void showModal() {
         isModalOpen = true;
         modalOverlay.setVisibility(View.VISIBLE);
+
+        // Fade in overlay background
+        modalOverlay.setAlpha(0f);
+        modalOverlay.animate()
+            .alpha(1f)
+            .setDuration(300)
+            .setInterpolator(new android.view.animation.LinearInterpolator())
+            .start();
+
+        // Slide in modal content from bottom
+        View modalContent = findViewById(R.id.modal_content_container);
+        if (modalContent != null) {
+            modalContent.setTranslationY(300);
+            modalContent.animate()
+                .translationY(0)
+                .setDuration(350)
+                .setInterpolator(new android.view.animation.AccelerateDecelerateInterpolator())
+                .start();
+        }
 
         // Change hamburger icon to close icon
         hamburgerButton.setImageResource(R.drawable.ic_close_vertical);
@@ -509,11 +590,37 @@ public class DashboardActivity extends AppCompatActivity {
     }
 
     /**
-     * Hide the utility modal
+     * Hide the utility modal with exit animation
      */
     private void hideModal() {
-        isModalOpen = false;
-        modalOverlay.setVisibility(View.GONE);
+        if (!isModalOpen) return;
+
+        // Fade out overlay background
+        modalOverlay.animate()
+            .alpha(0f)
+            .setDuration(300)
+            .setInterpolator(new android.view.animation.LinearInterpolator())
+            .start();
+
+        // Slide out modal content to bottom
+        View modalContent = findViewById(R.id.modal_content_container);
+        if (modalContent != null) {
+            modalContent.animate()
+                .translationY(300)
+                .setDuration(350)
+                .setInterpolator(new android.view.animation.AccelerateDecelerateInterpolator())
+                .withEndAction(() -> {
+                    isModalOpen = false;
+                    modalOverlay.setVisibility(View.GONE);
+                    // Reset animation properties for next time
+                    modalContent.setTranslationY(0);
+                    modalOverlay.setAlpha(1f);
+                })
+                .start();
+        } else {
+            isModalOpen = false;
+            modalOverlay.setVisibility(View.GONE);
+        }
 
         // Change close icon back to hamburger icon
         hamburgerButton.setImageResource(R.drawable.ic_hamburger);
@@ -522,42 +629,95 @@ public class DashboardActivity extends AppCompatActivity {
     }
 
     /**
-     * Switch between modal tabs
+     * Switch between modal tabs with cross-fade animation
      * @param tabIndex 0=Alerts, 1=Notifications, 2=Settings, 3=Profile
      */
     private void switchTab(int tabIndex) {
-        // Hide all tab contents
-        tabContentAlerts.setVisibility(View.GONE);
-        tabContentNotifications.setVisibility(View.GONE);
-        tabContentSettings.setVisibility(View.GONE);
-        tabContentProfile.setVisibility(View.GONE);
-
-        // Reset all tab icons to white (inactive)
+        // Reset all tab icons to white (inactive) immediately
         tabAlerts.setColorFilter(getResources().getColor(R.color.white, null));
         tabNotifications.setColorFilter(getResources().getColor(R.color.white, null));
         tabSettings.setColorFilter(getResources().getColor(R.color.white, null));
         tabProfile.setColorFilter(getResources().getColor(R.color.white, null));
 
-        // Show selected tab and highlight its icon in red
+        // Fade out current content
+        LinearLayout currentContent = null;
+        ImageView currentIcon = null;
+
+        // Find which tab is currently visible
+        if (tabContentAlerts.getVisibility() == View.VISIBLE) currentContent = tabContentAlerts;
+        else if (tabContentNotifications.getVisibility() == View.VISIBLE) currentContent = tabContentNotifications;
+        else if (tabContentSettings.getVisibility() == View.VISIBLE) currentContent = tabContentSettings;
+        else if (tabContentProfile.getVisibility() == View.VISIBLE) currentContent = tabContentProfile;
+
+        if (currentContent != null) {
+            currentContent.animate()
+                .alpha(0f)
+                .setDuration(150)
+                .setInterpolator(new android.view.animation.LinearInterpolator())
+                .withEndAction(() -> {
+                    // Hide all tab contents
+                    tabContentAlerts.setVisibility(View.GONE);
+                    tabContentNotifications.setVisibility(View.GONE);
+                    tabContentSettings.setVisibility(View.GONE);
+                    tabContentProfile.setVisibility(View.GONE);
+
+                    // Show and fade in selected tab
+                    showTabContent(tabIndex);
+                })
+                .start();
+        } else {
+            // No previous tab, just show new one
+            showTabContent(tabIndex);
+        }
+    }
+
+    /**
+     * Show specific tab content with fade-in animation
+     */
+    private void showTabContent(int tabIndex) {
         switch (tabIndex) {
             case 0: // Daily Tips (formerly Alerts)
+                tabContentAlerts.setAlpha(0f);
                 tabContentAlerts.setVisibility(View.VISIBLE);
+                tabContentAlerts.animate()
+                    .alpha(1f)
+                    .setDuration(150)
+                    .setInterpolator(new android.view.animation.LinearInterpolator())
+                    .start();
                 tabAlerts.setColorFilter(getResources().getColor(R.color.text_red, null));
                 displayRandomTip(); // Refresh tip when tab is opened
                 Log.d(TAG, "Switched to Daily Tips tab");
                 break;
             case 1: // Notifications
+                tabContentNotifications.setAlpha(0f);
                 tabContentNotifications.setVisibility(View.VISIBLE);
+                tabContentNotifications.animate()
+                    .alpha(1f)
+                    .setDuration(150)
+                    .setInterpolator(new android.view.animation.LinearInterpolator())
+                    .start();
                 tabNotifications.setColorFilter(getResources().getColor(R.color.text_red, null));
                 Log.d(TAG, "Switched to Notifications tab");
                 break;
             case 2: // Daily Check-in (formerly Settings)
+                tabContentSettings.setAlpha(0f);
                 tabContentSettings.setVisibility(View.VISIBLE);
+                tabContentSettings.animate()
+                    .alpha(1f)
+                    .setDuration(150)
+                    .setInterpolator(new android.view.animation.LinearInterpolator())
+                    .start();
                 tabSettings.setColorFilter(getResources().getColor(R.color.text_red, null));
                 Log.d(TAG, "Switched to Daily Check-in tab");
                 break;
             case 3: // Profile
+                tabContentProfile.setAlpha(0f);
                 tabContentProfile.setVisibility(View.VISIBLE);
+                tabContentProfile.animate()
+                    .alpha(1f)
+                    .setDuration(150)
+                    .setInterpolator(new android.view.animation.LinearInterpolator())
+                    .start();
                 tabProfile.setColorFilter(getResources().getColor(R.color.text_red, null));
                 Log.d(TAG, "Switched to Profile tab");
                 break;
@@ -625,10 +785,9 @@ public class DashboardActivity extends AppCompatActivity {
 
                     // mark complete on screen - show checkmark
                     taskIcon.setImageResource(R.drawable.ic_checkmark);
-                    taskIcon.setTag("accent_color");
-                    taskText.setTag("secondary_text");
-
-                    tm.applyTheme();
+                    // Apply accent color directly to this icon only
+                    taskIcon.setColorFilter(getResources().getColor(R.color.text_red, null));
+                    taskText.setTextColor(getResources().getColor(R.color.text_secondary, null));
 
                     checkForTasksComplete();
                 }
@@ -646,10 +805,9 @@ public class DashboardActivity extends AppCompatActivity {
 
                     // mark complete on screen - show checkmark
                     taskIcon.setImageResource(R.drawable.ic_checkmark);
-                    taskIcon.setTag("accent_color");
-                    taskText.setTag("secondary_text");
-
-                    tm.applyTheme();
+                    // Apply accent color directly to this icon only
+                    taskIcon.setColorFilter(getResources().getColor(R.color.text_red, null));
+                    taskText.setTextColor(getResources().getColor(R.color.text_secondary, null));
 
                     checkForTasksComplete();
                 }
@@ -667,10 +825,9 @@ public class DashboardActivity extends AppCompatActivity {
 
                     // mark complete on screen - show checkmark
                     taskIcon.setImageResource(R.drawable.ic_checkmark);
-                    taskIcon.setTag("accent_color");
-                    taskText.setTag("secondary_text");
-
-                    tm.applyTheme();
+                    // Apply accent color directly to this icon only
+                    taskIcon.setColorFilter(getResources().getColor(R.color.text_red, null));
+                    taskText.setTextColor(getResources().getColor(R.color.text_secondary, null));
 
                     checkForTasksComplete();
                 }
@@ -708,7 +865,7 @@ public class DashboardActivity extends AppCompatActivity {
                 checklistItem2.setAlpha(0.5f);
                 checklistItem3.setAlpha(0.5f);
             }
-            
+
             Log.d(TAG, "🎉 All daily tasks completed! Daily check-in triggered.");
         }
     }
@@ -918,61 +1075,95 @@ public class DashboardActivity extends AppCompatActivity {
         meterFill = findViewById(R.id.meter_fill);
         thresholdIndicator = findViewById(R.id.threshold_indicator);
 
-        // Initialize meter with default value
-        meterFill.post(() -> {
-            // Use yesterday's usage as initial threshold if available
-            if (energyDataManager != null) {
-                double yesterdayThreshold = energyDataManager.getYesterdayEnergyUsage(currentDormName);
-                int dynamicThreshold = yesterdayThreshold > 0 ? (int)yesterdayThreshold : thresholdValue;
-                updateMeter(currentUsage, dynamicThreshold);
-            } else {
-                updateMeter(currentUsage, thresholdValue);
+        // Wait for layout to complete before initializing meter
+        meterFill.getViewTreeObserver().addOnGlobalLayoutListener(
+            new android.view.ViewTreeObserver.OnGlobalLayoutListener() {
+                @Override
+                public void onGlobalLayout() {
+                    // Remove listener to prevent multiple calls
+                    meterFill.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+
+                    // Now layout is complete, initialize meter
+                    if (energyDataManager != null) {
+                        double yesterdayThreshold = energyDataManager.getYesterdayEnergyUsage(currentDormName);
+                        int dynamicThreshold = yesterdayThreshold > 0 ? (int)yesterdayThreshold : thresholdValue;
+                        updateMeter(currentUsage, dynamicThreshold);
+                    } else {
+                        updateMeter(currentUsage, thresholdValue);
+                    }
+                }
             }
-        });
+        );
     }
 
     /**
-     * Updates the energy meter display
-     * @param usage Current energy usage in kw (0-400)
+     * Updates the energy meter display with smooth animation
+     * @param usage Current energy usage in kw (0-600)
      * @param threshold Threshold value in kw
      */
     private void updateMeter(int usage, int threshold) {
         // Calculate meter fill height as percentage
-        float usagePercentage = ((float) usage / MAX_USAGE);
-        float thresholdPercentage = ((float) threshold / MAX_USAGE);
+        float usagePercentage = Math.min(((float) usage / MAX_USAGE), 1.0f);
+        float thresholdPercentage = Math.min(((float) threshold / MAX_USAGE), 1.0f);
 
-        // Update meter fill height
+        // Update meter fill height with smooth animation
         meterFill.post(() -> {
             ViewGroup.LayoutParams params = meterFill.getLayoutParams();
             int meterHeight = meterFill.getParent() != null ?
                 ((View) meterFill.getParent()).getHeight() : 0;
-            params.height = (int) (meterHeight * usagePercentage);
-            meterFill.setLayoutParams(params);
 
-            // Update meter color based on usage (green to red gradient)
-            // Use drawable background to maintain rounded corners
-            int color = getMeterColor(usagePercentage);
-            android.graphics.drawable.GradientDrawable drawable =
-                (android.graphics.drawable.GradientDrawable)
-                getResources().getDrawable(R.drawable.meter_fill_shape, null).mutate();
-            drawable.setColor(color);
-            meterFill.setBackground(drawable);
+            int targetHeight = (int) (meterHeight * usagePercentage);
+
+            // Animate height change smoothly
+            ObjectAnimator heightAnimator = ObjectAnimator.ofInt(meterFill, "height",
+                meterFill.getHeight(), targetHeight);
+            heightAnimator.setDuration(500);
+            heightAnimator.setInterpolator(new android.view.animation.AccelerateDecelerateInterpolator());
+
+            heightAnimator.addUpdateListener(animation -> {
+                // Update color during animation based on current percentage
+                int animatedHeight = (int) animation.getAnimatedValue();
+                float currentPercentage = meterHeight > 0 ?
+                    (float) animatedHeight / meterHeight : 0;
+
+                int color = getMeterColor(currentPercentage);
+                android.graphics.drawable.GradientDrawable drawable =
+                    (android.graphics.drawable.GradientDrawable)
+                    getResources().getDrawable(R.drawable.meter_fill_shape, null).mutate();
+                drawable.setColor(color);
+                meterFill.setBackground(drawable);
+
+                // Update layout
+                ViewGroup.LayoutParams p = meterFill.getLayoutParams();
+                p.height = animatedHeight;
+                meterFill.setLayoutParams(p);
+            });
+
+            heightAnimator.start();
         });
 
-        // Update threshold indicator position
-        thresholdIndicator.post(() -> {
-            ViewGroup.MarginLayoutParams params =
-                (ViewGroup.MarginLayoutParams) thresholdIndicator.getLayoutParams();
-            int meterHeight = thresholdIndicator.getParent() != null ?
-                ((View) thresholdIndicator.getParent()).getHeight() : 0;
+        // Update threshold indicator position (no animation - instant update)
+        int meterHeight = thresholdIndicator.getParent() != null ?
+            ((View) thresholdIndicator.getParent()).getHeight() : 0;
+
+        // Only update if parent is properly measured
+        if (meterHeight > 0 && thresholdIndicator.getHeight() > 0) {
+            RelativeLayout.LayoutParams params =
+                (RelativeLayout.LayoutParams) thresholdIndicator.getLayoutParams();
+
+            // Remove CENTER_VERTICAL rule and add ALIGN_PARENT_BOTTOM rule
+            params.addRule(RelativeLayout.CENTER_VERTICAL, 0);
+            params.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM, RelativeLayout.TRUE);
 
             // Position from bottom (inverse of percentage)
-            int marginBottom = (int) (meterHeight * thresholdPercentage) -
+            int targetMarginBottom = (int) (meterHeight * thresholdPercentage) -
                 (thresholdIndicator.getHeight() / 2);
-            params.bottomMargin = marginBottom;
+
+            // Set position instantly without animation
+            params.bottomMargin = targetMarginBottom;
             params.topMargin = 0;
             thresholdIndicator.setLayoutParams(params);
-        });
+        }
     }
 
     /**
@@ -1267,6 +1458,23 @@ public class DashboardActivity extends AppCompatActivity {
         return (int) (baseLoad * efficiencyFactor);
     }
     
+    /**
+     * Animate click feedback for interactive elements
+     * Creates a scale-down and scale-up effect for button press
+     */
+    private void animateClickFeedback(View view) {
+        ObjectAnimator scaleX = ObjectAnimator.ofFloat(view, "scaleX", 1.0f, 0.95f, 1.0f);
+        ObjectAnimator scaleY = ObjectAnimator.ofFloat(view, "scaleY", 1.0f, 0.95f, 1.0f);
+
+        scaleX.setDuration(200);
+        scaleY.setDuration(200);
+        scaleX.setInterpolator(new android.view.animation.AccelerateDecelerateInterpolator());
+        scaleY.setInterpolator(new android.view.animation.AccelerateDecelerateInterpolator());
+
+        scaleX.start();
+        scaleY.start();
+    }
+
     @Override
     protected void onDestroy() {
         super.onDestroy();
