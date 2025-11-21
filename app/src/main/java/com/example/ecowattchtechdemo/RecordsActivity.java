@@ -37,7 +37,7 @@ public class RecordsActivity extends AppCompatActivity {
     private TextView thirdPlaceDorm;
 
     // Day selection
-    private int selectedDayIndex = 3; // Default: Wednesday (index 3)
+    private int selectedDayIndex = 0; // Will be set to current day in onCreate()
     private int currentDayIndex; // Current day of the week (0 = Sunday, 6 = Saturday)
     private String[] dayNames = {"sun", "mon", "tue", "wed", "thu", "fri", "sat"};
     private String[] dayNamesFull = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
@@ -61,6 +61,9 @@ public class RecordsActivity extends AppCompatActivity {
         // Get current day of week (0 = Sunday, 6 = Saturday)
         Calendar calendar = Calendar.getInstance();
         currentDayIndex = calendar.get(Calendar.DAY_OF_WEEK) - 1; // Convert to 0-based index
+
+        // Set default selection to current day for better UX
+        selectedDayIndex = currentDayIndex;
 
         // Initialize empty data structures for real API data
         initializeDataStructures();
