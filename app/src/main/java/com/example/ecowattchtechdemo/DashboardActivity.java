@@ -1,6 +1,7 @@
 package com.example.ecowattchtechdemo;
 
 import android.animation.ValueAnimator;
+import android.content.Context;
 import android.graphics.Color;
 import android.os.Bundle;
 import androidx.appcompat.app.AppCompatActivity;
@@ -748,6 +749,10 @@ public class DashboardActivity extends AppCompatActivity {
      * Show specific tab content with fade-in animation
      */
     private void showTabContent(int tabIndex) {
+        // get colors from shared prefs
+        SharedPreferences prefs = getSharedPreferences("ThemePrefs", Context.MODE_PRIVATE);
+        int accent = Color.parseColor(prefs.getString("accent_color", "#CD232E"));
+
         switch (tabIndex) {
             case 0: // Daily Tips (formerly Alerts)
                 tabContentAlerts.setAlpha(0f);
@@ -757,7 +762,7 @@ public class DashboardActivity extends AppCompatActivity {
                     .setDuration(150)
                     .setInterpolator(new android.view.animation.LinearInterpolator())
                     .start();
-                tabAlerts.setColorFilter(getResources().getColor(R.color.text_red, null));
+                tabAlerts.setColorFilter(accent);
                 displayRandomTip(); // Refresh tip when tab is opened
                 Log.d(TAG, "Switched to Daily Tips tab");
                 break;
@@ -769,7 +774,7 @@ public class DashboardActivity extends AppCompatActivity {
                     .setDuration(150)
                     .setInterpolator(new android.view.animation.LinearInterpolator())
                     .start();
-                tabNotifications.setColorFilter(getResources().getColor(R.color.text_red, null));
+                tabNotifications.setColorFilter(accent);
                 Log.d(TAG, "Switched to Notifications tab");
                 break;
             case 2: // Daily Check-in (formerly Settings)
@@ -780,7 +785,7 @@ public class DashboardActivity extends AppCompatActivity {
                     .setDuration(150)
                     .setInterpolator(new android.view.animation.LinearInterpolator())
                     .start();
-                tabSettings.setColorFilter(getResources().getColor(R.color.text_red, null));
+                tabSettings.setColorFilter(accent);
                 Log.d(TAG, "Switched to Daily Check-in tab");
                 break;
             case 3: // Profile

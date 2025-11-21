@@ -1,5 +1,7 @@
 package com.example.ecowattchtechdemo;
 
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
@@ -45,6 +47,9 @@ public class RecordsActivity extends AppCompatActivity {
     private List<LeaderboardEntry> allTimeLeaderboard;
     private List<StreakEntry> streaksLeaderboard;
 
+    // theme manager
+    private ThemeManager tm;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -78,6 +83,14 @@ public class RecordsActivity extends AppCompatActivity {
                 overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left);
             }, 150);
         });
+
+        // initialize themeManager
+        tm = new ThemeManager(this);
+    }
+
+    protected void onStart() {
+        super.onStart();
+        tm.applyTheme();
     }
 
     @Override
@@ -243,9 +256,13 @@ public class RecordsActivity extends AppCompatActivity {
             barDrawable.setShape(GradientDrawable.RECTANGLE);
             barDrawable.setCornerRadius(12f);
 
+            // get colors from shared prefs for programmatic coloring
+            SharedPreferences prefs = getSharedPreferences("ThemePrefs", Context.MODE_PRIVATE);
+            int accent = Color.parseColor(prefs.getString("accent_color", "#CD232E"));
+
             // Color based on selection
             if (i == selectedDayIndex) {
-                barDrawable.setColor(ContextCompat.getColor(this, R.color.text_red));
+                barDrawable.setColor(accent);
             } else {
                 barDrawable.setColor(ContextCompat.getColor(this, R.color.button_background));
             }
@@ -270,7 +287,7 @@ public class RecordsActivity extends AppCompatActivity {
             // Color label based on current day (not selection)
             // Current day is always red, other days are dimmed white
             if (i == currentDayIndex) {
-                dayLabel.setTextColor(ContextCompat.getColor(this, R.color.text_red));
+                dayLabel.setTextColor(accent);
                 dayLabel.setAlpha(1.0f);
             } else {
                 dayLabel.setTextColor(ContextCompat.getColor(this, R.color.white));
