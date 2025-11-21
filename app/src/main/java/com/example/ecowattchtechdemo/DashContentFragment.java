@@ -152,13 +152,13 @@ public class DashContentFragment extends Fragment {
     }
 
     /**
-     * Update the potential energy display with animated counter
-     * @param potentialEnergy String in format "237 Potential Energy" or just the number
+     * Update the rally points display with animated counter
+     * @param potentialEnergy String in format "237 Rally Points" or just the number
      */
     public void updatePotentialEnergy(String potentialEnergy) {
         if (potentialEnergyText != null) {
             // Extract just the number if full string is provided
-            String numericValue = potentialEnergy.replace(" Potential Energy", "").replace(",", "").trim();
+            String numericValue = potentialEnergy.replace(" Rally Points", "").replace(" Potential Energy", "").replace(",", "").trim();
             try {
                 int newValue = Integer.parseInt(numericValue);
                 animateCounter(potentialEnergyText, previousPotentialEnergy, newValue, true);

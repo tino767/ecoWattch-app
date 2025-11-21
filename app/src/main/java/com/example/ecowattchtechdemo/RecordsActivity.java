@@ -348,9 +348,9 @@ public class RecordsActivity extends AppCompatActivity {
             );
             leftText.setLayoutParams(leftParams);
 
-            // Right side: potential energy
+            // Right side: rally points
             TextView rightText = new TextView(this);
-            rightText.setText(String.format("%d potential energy", entry.potentialEnergy));
+            rightText.setText(String.format("%d rally points", entry.potentialEnergy));
             rightText.setTextColor(ContextCompat.getColor(this, R.color.white));
             rightText.setTextSize(13);
             rightText.setTypeface(getResources().getFont(R.font.matrixtype_display));
@@ -529,10 +529,10 @@ public class RecordsActivity extends AppCompatActivity {
         android.util.Log.d("RecordsActivity", "🏆 BEFORE SORTING - Reading points for each dorm:");
         
         for (String dorm : dorms) {
-            // Use actual potential energy points from gamification system
+            // Use actual rally points from gamification system
             int potentialEnergyPoints = pointsManager.getDormTotalPoints(dorm);
-            
-            android.util.Log.d("RecordsActivity", "🏆 " + dorm + " has " + potentialEnergyPoints + " potential energy points");
+
+            android.util.Log.d("RecordsActivity", "🏆 " + dorm + " has " + potentialEnergyPoints + " rally points");
             
             entries.add(new LeaderboardEntry(0, dorm, potentialEnergyPoints));
         }
@@ -543,7 +543,7 @@ public class RecordsActivity extends AppCompatActivity {
             android.util.Log.d("RecordsActivity", "🏆   " + entry.dormName + " = " + entry.potentialEnergy + " points");
         }
         
-        // Sort by potential energy points (highest first) - SAME as DormPointsManager.getDormPosition()
+        // Sort by rally points (highest first) - SAME as DormPointsManager.getDormPosition()
         Collections.sort(entries, new Comparator<LeaderboardEntry>() {
             @Override
             public int compare(LeaderboardEntry a, LeaderboardEntry b) {

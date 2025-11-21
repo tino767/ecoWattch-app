@@ -1634,7 +1634,7 @@ public class DashboardActivity extends AppCompatActivity {
     private void startLiveDataUpdates() {
         Log.d(TAG, "🚀 Starting smart update system with optimized intervals:");
         Log.d(TAG, "  - Live Energy: " + (LIVE_ENERGY_INTERVAL/1000) + "s");
-        Log.d(TAG, "  - Potential Energy: " + (POTENTIAL_ENERGY_INTERVAL/60000) + "m"); 
+        Log.d(TAG, "  - Rally Points: " + (POTENTIAL_ENERGY_INTERVAL/60000) + "m");
         Log.d(TAG, "  - Rankings: " + (RANKINGS_INTERVAL/60000) + "m");
         
         // 🚀 Show initial data immediately if authenticated, otherwise wait for auth callback
@@ -1884,9 +1884,9 @@ public class DashboardActivity extends AppCompatActivity {
         // 🎮 Update potential energy (conditional - only updates at 10pm daily)
         if (updatePotentialEnergy) {
             cachedPotentialEnergy = energyDataManager.getDormPotentialEnergy(data.getBuildingName());
-            Log.d(TAG, "⚡ Potential energy updated: " + cachedPotentialEnergy + " points");
+            Log.d(TAG, "⚡ Rally points updated: " + cachedPotentialEnergy + " points");
         }
-        dashContentFragment.updatePotentialEnergy(cachedPotentialEnergy + " Potential Energy");
+        dashContentFragment.updatePotentialEnergy(cachedPotentialEnergy + " Rally Points");
         
         // 🎮 Enhanced display: Today's Total, Yesterday's Total, and Emissions - Populate rotating display data
         
@@ -2050,12 +2050,12 @@ public class DashboardActivity extends AppCompatActivity {
         String statusText = buildingName + " - " + (cachedDormPosition != null ? cachedDormPosition : "LIVE DATA");
         dashContentFragment.updateDormStatus(statusText);
         
-        // 🎮 Update potential energy (conditional - only updates at 10pm daily)
+        // 🎮 Update rally points (conditional - only updates at 10pm daily)
         if (updatePotentialEnergy) {
             cachedPotentialEnergy = energyDataManager.getDormPotentialEnergy(buildingName);
-            Log.d(TAG, "⚡ Potential energy updated: " + cachedPotentialEnergy + " points");
+            Log.d(TAG, "⚡ Rally points updated: " + cachedPotentialEnergy + " points");
         }
-        dashContentFragment.updatePotentialEnergy(cachedPotentialEnergy + " Potential Energy");
+        dashContentFragment.updatePotentialEnergy(cachedPotentialEnergy + " Rally Points");
         
         // 🎮 Enhanced display: Today's Total, Yesterday's Total, and Emissions using combined data
         String todayDataString;
