@@ -1,23 +1,34 @@
 package com.example.ecowattchtechdemo;
 
+import android.animation.ValueAnimator;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.AccelerateDecelerateInterpolator;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
+import java.text.DecimalFormat;
+
 public class DashContentFragment extends Fragment {
-    
+
     private TextView usernameText;
     private TextView currentUsageText;
     private TextView yesterdaysTotalText;
     private TextView potentialEnergyText;
     // theme manager
     private ThemeManager tm;
+
+    // Store previous values for counter animations
+    private int previousUsage = 0;
+    private int previousPotentialEnergy = 0;
+    private int previousYesterdaysTotal = 0;
+
+    private DecimalFormat decimalFormat = new DecimalFormat("#,##0");
     
     @Nullable
     @Override
@@ -61,14 +72,21 @@ public class DashContentFragment extends Fragment {
     }
     
     /**
-     * Update the current energy usage display
+     * Update the current energy usage display with animated counter
      * @param usage String in format "280kW" or just the number
      */
     public void updateCurrentUsage(String usage) {
         if (currentUsageText != null) {
             // Remove "kW" suffix if present, we display it separately
-            String numericValue = usage.replace("kW", "").replace("kw", "").trim();
-            currentUsageText.setText(numericValue);
+            String numericValue = usage.replace("kW", "").replace("kw", "").replace(",", "").trim();
+            try {
+                int newValue = Integer.parseInt(numericValue);
+                animateCounter(currentUsageText, previousUsage, newValue, false);
+                previousUsage = newValue;
+            } catch (NumberFormatException e) {
+                // Fallback to direct text update if parsing fails
+                currentUsageText.setText(numericValue);
+            }
         }
     }
 
@@ -104,23 +122,68 @@ public class DashContentFragment extends Fragment {
     }
     
     /**
-     * Update yesterday's total energy usage
+     * Update yesterday's total energy usage with animated counter
      */
     public void updateYesterdaysTotal(String total) {
         if (yesterdaysTotalText != null) {
-            yesterdaysTotalText.setText(total);
+            String numericValue = total.replace("kWh", "").replace("kW", "").replace(",", "").trim();
+            try {
+                int newValue = Integer.parseInt(numericValue);
+                animateCounter(yesterdaysTotalText, previousYesterdaysTotal, newValue, true);
+                previousYesterdaysTotal = newValue;
+            } catch (NumberFormatException e) {
+                // Fallback to direct text update if parsing fails
+                yesterdaysTotalText.setText(total);
+            }
         }
     }
-    
+
     /**
-     * Update the potential energy display
+     * Update the potential energy display with animated counter
      * @param potentialEnergy String in format "237 Potential Energy" or just the number
      */
     public void updatePotentialEnergy(String potentialEnergy) {
         if (potentialEnergyText != null) {
             // Extract just the number if full string is provided
-            String numericValue = potentialEnergy.replace(" Potential Energy", "").trim();
-            potentialEnergyText.setText(numericValue);
+            String numericValue = potentialEnergy.replace(" Potential Energy", "").replace(",", "").trim();
+            try {
+                int newValue = Integer.parseInt(numericValue);
+                animateCounter(potentialEnergyText, previousPotentialEnergy, newValue, true);
+                previousPotentialEnergy = newValue;
+            } catch (NumberFormatException e) {
+                // Fallback to direct text update if parsing fails
+                potentialEnergyText.setText(numericValue);
+            }
         }
+    }
+
+    /**
+     * Animates a number counter from old value to new value
+     * @param textView The TextView to animate
+     * @param from Starting value
+     * @param to Ending value
+     * @param useCommas Whether to format with comma separators
+     */
+    private void animateCounter(TextView textView, int from, int to, boolean useCommas) {
+        if (from == to) {
+            // No change, just update text
+            textView.setText(useCommas ? decimalFormat.format(to) : String.valueOf(to));
+            return;
+        }
+
+        ValueAnimator animator = ValueAnimator.ofInt(from, to);
+        animator.setDuration(800); // 800ms for smooth counting
+        animator.setInterpolator(new AccelerateDecelerateInterpolator());
+
+        animator.addUpdateListener(animation -> {
+            int value = (int) animation.getAnimatedValue();
+            if (useCommas) {
+                textView.setText(decimalFormat.format(value));
+            } else {
+                textView.setText(String.valueOf(value));
+            }
+        });
+
+        animator.start();
     }
 }

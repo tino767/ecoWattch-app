@@ -14,6 +14,8 @@ import android.util.Log;
 import android.widget.TextView;
 import android.view.View;
 import android.widget.Toast;
+import android.animation.ObjectAnimator;
+import android.view.animation.AccelerateDecelerateInterpolator;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -87,11 +89,16 @@ public class ShopActivity extends AppCompatActivity {
         int spendablePoints = pointsManager.getIndividualSpendablePoints();
         energyPointsText.setText(spendablePoints + " Energy");
 
-        // Back button functionality
+        // Back button functionality with animation
         backButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                finish();
+                animateClickFeedback(view);
+                view.postDelayed(() -> {
+                    finish();
+                    // Reverse animation: slide out to right, dashboard slides in from left
+                    overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right);
+                }, 150);
             }
         });
 
@@ -234,27 +241,46 @@ public class ShopActivity extends AppCompatActivity {
     }
 
     private void setupTabs() {
-        // Pallets tab click listener
+        // Pallets tab click listener with animation
         tabPallets.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                switchToTab(tabPallets);
+                animateClickFeedback(view);
+                view.postDelayed(() -> {
+                    switchToTab(tabPallets);
 
-                // Sort palettes: unowned first, owned last
-                sortPalettesByOwnership();
+                    // Sort palettes: unowned first, owned last
+                    sortPalettesByOwnership();
 
-                palletsRecycler.setVisibility(View.VISIBLE);
-                ownedRecycler.setVisibility(View.GONE);
+                    // Fade in pallets recycler
+                    palletsRecycler.setAlpha(0f);
+                    palletsRecycler.setVisibility(View.VISIBLE);
+                    palletsRecycler.animate()
+                        .alpha(1f)
+                        .setDuration(300)
+                        .start();
+                    ownedRecycler.setVisibility(View.GONE);
+                }, 100);
             }
         });
 
-        // Owned tab click listener
+        // Owned tab click listener with animation
         tabOwned.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                switchToTab(tabOwned);
-                palletsRecycler.setVisibility(View.GONE);
-                ownedRecycler.setVisibility(View.VISIBLE);
+                animateClickFeedback(view);
+                view.postDelayed(() -> {
+                    switchToTab(tabOwned);
+
+                    // Fade in owned recycler
+                    ownedRecycler.setAlpha(0f);
+                    ownedRecycler.setVisibility(View.VISIBLE);
+                    ownedRecycler.animate()
+                        .alpha(1f)
+                        .setDuration(300)
+                        .start();
+                    palletsRecycler.setVisibility(View.GONE);
+                }, 100);
             }
         });
 
@@ -540,6 +566,23 @@ public class ShopActivity extends AppCompatActivity {
                 Toast.makeText(ShopActivity.this, "Purchase saved locally, sync failed", Toast.LENGTH_SHORT).show();
             }
         });
+    }
+
+    /**
+     * Animate click feedback for interactive elements
+     * Creates a scale-down and scale-up effect for button press
+     */
+    private void animateClickFeedback(View view) {
+        ObjectAnimator scaleX = ObjectAnimator.ofFloat(view, "scaleX", 1.0f, 0.95f, 1.0f);
+        ObjectAnimator scaleY = ObjectAnimator.ofFloat(view, "scaleY", 1.0f, 0.95f, 1.0f);
+
+        scaleX.setDuration(200);
+        scaleY.setDuration(200);
+        scaleX.setInterpolator(new android.view.animation.AccelerateDecelerateInterpolator());
+        scaleY.setInterpolator(new android.view.animation.AccelerateDecelerateInterpolator());
+
+        scaleX.start();
+        scaleY.start();
     }
 
 }

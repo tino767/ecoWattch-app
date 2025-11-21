@@ -64,6 +64,7 @@
             android:rotation="270"
             android:background="@android:color/transparent"
             android:src="@drawable/ic_triangle"
+            android:saveEnabled="false"
             app:tint="@color/white" />
 
     </RelativeLayout>

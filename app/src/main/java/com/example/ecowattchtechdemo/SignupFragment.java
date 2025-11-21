@@ -1,5 +1,6 @@
 package com.example.ecowattchtechdemo;
 
+import android.animation.ObjectAnimator;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -8,6 +9,9 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.AccelerateDecelerateInterpolator;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.Button;
@@ -66,6 +70,8 @@ public class SignupFragment extends Fragment {
         dormDropdown.setDropDownBackgroundResource(R.color.modal_background);
 
         signupButton.setOnClickListener(v -> {
+            animateClickFeedback(v);
+
             String username = signupUser.getText().toString().trim();
             String password = signupPass.getText().toString().trim();
             String confirm = confirmPass.getText().toString().trim();
@@ -105,6 +111,7 @@ public class SignupFragment extends Fragment {
                             }
                         }
                         Toast.makeText(requireContext(), errorMsg, Toast.LENGTH_LONG).show();
+                        shakeSignupForm();
                         //Toast.makeText(getApplicationContext(), "Sign-up failed: " + error.getMessage(), Toast.LENGTH_LONG).show();
                     }
             );
@@ -128,14 +135,74 @@ public class SignupFragment extends Fragment {
         });
 
         loginLink.setOnClickListener(v -> {
+            animateClickFeedback(v);
+
             requireActivity().getSupportFragmentManager()
                     .beginTransaction()
+                    .setCustomAnimations(
+                            R.anim.slide_in_left,   // enter animation
+                            R.anim.slide_out_right, // exit animation
+                            R.anim.slide_in_right,  // pop enter animation
+                            R.anim.slide_out_left   // pop exit animation
+                    )
                     .replace(R.id.login_signup_fragment_container, new LoginFragment())
                     .addToBackStack(null)
                     .commit();
         });
 
+        // Add subtle focus animations to input fields
+        addInputFocusAnimations();
+
         return view;
+    }
+
+    /**
+     * Adds subtle scale animation when input fields gain focus
+     */
+    private void addInputFocusAnimations() {
+        View.OnFocusChangeListener focusListener = (v, hasFocus) -> {
+            float scale = hasFocus ? 1.02f : 1.0f;
+            v.animate()
+                    .scaleX(scale)
+                    .scaleY(scale)
+                    .setDuration(200)
+                    .setInterpolator(new AccelerateDecelerateInterpolator())
+                    .start();
+        };
+
+        signupUser.setOnFocusChangeListener(focusListener);
+        signupPass.setOnFocusChangeListener(focusListener);
+        confirmPass.setOnFocusChangeListener(focusListener);
+        dormDropdown.setOnFocusChangeListener(focusListener);
+    }
+
+    /**
+     * Animates button click with squeeze effect
+     */
+    private void animateClickFeedback(View view) {
+        view.animate()
+                .scaleX(0.95f)
+                .scaleY(0.95f)
+                .setDuration(100)
+                .withEndAction(() -> {
+                    view.animate()
+                            .scaleX(1.0f)
+                            .scaleY(1.0f)
+                            .setDuration(100)
+                            .start();
+                })
+                .start();
+    }
+
+    /**
+     * Shakes the signup form when signup fails
+     */
+    private void shakeSignupForm() {
+        View signupForm = getView();
+        if (signupForm != null) {
+            Animation shake = AnimationUtils.loadAnimation(requireContext(), R.anim.shake);
+            signupForm.startAnimation(shake);
+        }
     }
 
     private void scheduleDailyReset() {
