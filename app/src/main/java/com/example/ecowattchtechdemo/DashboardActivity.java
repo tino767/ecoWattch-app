@@ -411,7 +411,7 @@ public class DashboardActivity extends AppCompatActivity {
                 view.postDelayed(() -> {
                     Intent intent = new Intent(DashboardActivity.this, RecordsActivity.class);
                     startActivity(intent, android.app.ActivityOptions.makeCustomAnimation(
-                        DashboardActivity.this, R.anim.slide_in_left, R.anim.slide_out_right).toBundle());
+                        DashboardActivity.this, R.anim.fade_in, R.anim.fade_out).toBundle());
                 }, 150);
             }
         });
@@ -423,7 +423,7 @@ public class DashboardActivity extends AppCompatActivity {
                 view.postDelayed(() -> {
                     Intent intent = new Intent(DashboardActivity.this, ShopActivity.class);
                     startActivity(intent, android.app.ActivityOptions.makeCustomAnimation(
-                        DashboardActivity.this, R.anim.slide_in_right, R.anim.slide_out_left).toBundle());
+                        DashboardActivity.this, R.anim.fade_in, R.anim.fade_out).toBundle());
                 }, 150);
             }
         });

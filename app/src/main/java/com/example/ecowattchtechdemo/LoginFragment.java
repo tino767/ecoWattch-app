@@ -132,10 +132,10 @@ public class LoginFragment extends Fragment {
             requireActivity().getSupportFragmentManager()
                     .beginTransaction()
                     .setCustomAnimations(
-                            R.anim.slide_in_right,  // enter animation
-                            R.anim.slide_out_left,  // exit animation
-                            R.anim.slide_in_left,   // pop enter animation
-                            R.anim.slide_out_right  // pop exit animation
+                            R.anim.fade_in,  // enter animation
+                            R.anim.fade_out,  // exit animation
+                            R.anim.fade_in,   // pop enter animation
+                            R.anim.fade_out  // pop exit animation
                     )
                     .replace(R.id.login_signup_fragment_container, new SignupFragment())
                     .addToBackStack(null)

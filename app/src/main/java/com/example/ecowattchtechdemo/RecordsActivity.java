@@ -82,8 +82,8 @@ public class RecordsActivity extends AppCompatActivity {
             animateClickFeedback(view);
             view.postDelayed(() -> {
                 finish();
-                // Reverse animation: slide out to left, dashboard slides in from right
-                overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left);
+                // Fade animation for smooth page transition
+                overridePendingTransition(R.anim.fade_in, R.anim.fade_out);
             }, 150);
         });
 

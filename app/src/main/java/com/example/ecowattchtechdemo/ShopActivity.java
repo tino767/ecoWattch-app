@@ -96,8 +96,8 @@ public class ShopActivity extends AppCompatActivity {
                 animateClickFeedback(view);
                 view.postDelayed(() -> {
                     finish();
-                    // Reverse animation: slide out to right, dashboard slides in from left
-                    overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right);
+                    // Fade animation for smooth page transition
+                    overridePendingTransition(R.anim.fade_in, R.anim.fade_out);
                 }, 150);
             }
         });
