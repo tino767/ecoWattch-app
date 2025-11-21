@@ -1,10 +1,12 @@
 package com.example.ecowattchtechdemo;
 
+import android.animation.ObjectAnimator;
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.AccelerateDecelerateInterpolator;
 import android.widget.ImageView;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
@@ -41,6 +43,18 @@ public class ShopAdapter extends RecyclerView.Adapter<ShopAdapter.ShopViewHolder
     public void onBindViewHolder(@NonNull ShopViewHolder holder, int position) {
         ShopItem item = shopItems.get(position);
         holder.bind(item, position);
+
+        // Add staggered entrance animation
+        holder.itemView.setAlpha(0f);
+        holder.itemView.setTranslationY(20f);
+
+        holder.itemView.animate()
+                .alpha(1f)
+                .translationY(0f)
+                .setDuration(300)
+                .setStartDelay(position * 100L) // Stagger by 100ms per item
+                .setInterpolator(new AccelerateDecelerateInterpolator())
+                .start();
     }
 
     @Override
@@ -96,12 +110,31 @@ public class ShopAdapter extends RecyclerView.Adapter<ShopAdapter.ShopViewHolder
                 itemCheckmark.setVisibility(View.GONE);
             }
 
-            // Set click listener
+            // Set click listener with press animation
             itemView.setOnClickListener(v -> {
+                animateClickFeedback(v);
                 if (clickListener != null) {
                     clickListener.onItemClick(item, position);
                 }
             });
+        }
+
+        /**
+         * Animates a squeeze effect when item is clicked
+         */
+        private void animateClickFeedback(View view) {
+            view.animate()
+                    .scaleX(0.95f)
+                    .scaleY(0.95f)
+                    .setDuration(100)
+                    .withEndAction(() -> {
+                        view.animate()
+                                .scaleX(1.0f)
+                                .scaleY(1.0f)
+                                .setDuration(100)
+                                .start();
+                    })
+                    .start();
         }
     }
 

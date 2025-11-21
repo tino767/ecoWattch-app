@@ -1,11 +1,15 @@
 package com.example.ecowattchtechdemo;
 
+import android.animation.ObjectAnimator;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.AccelerateDecelerateInterpolator;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -41,6 +45,8 @@ public class LoginFragment extends Fragment {
         loginPass = view.findViewById(R.id.login_pass);
 
         loginButton.setOnClickListener(v -> {
+            animateClickFeedback(v);
+
             String username = loginUser.getText().toString().trim();
             String password = loginPass.getText().toString().trim();
 
@@ -71,15 +77,18 @@ public class LoginFragment extends Fragment {
                             startActivity(intent);
                         } else {
                             Toast.makeText(requireContext(), "Login Failed: " + response.body().getMessage(), Toast.LENGTH_SHORT).show();
+                            shakeLoginForm();
                         }
                     } else {
                         Toast.makeText(requireContext(), "API Error", Toast.LENGTH_SHORT).show();
+                        shakeLoginForm();
                     }
                 }
 
                 @Override
                 public void onFailure(Call<LoginResponse> call, Throwable t) {
                     Toast.makeText(requireContext(), "Network Error: " + t.getMessage(), Toast.LENGTH_LONG).show();
+                    shakeLoginForm();
                 }
 
             // go to dashboard
@@ -93,13 +102,71 @@ public class LoginFragment extends Fragment {
         });
 
         signupLink.setOnClickListener(v -> {
+            animateClickFeedback(v);
+
             requireActivity().getSupportFragmentManager()
                     .beginTransaction()
+                    .setCustomAnimations(
+                            R.anim.slide_in_right,  // enter animation
+                            R.anim.slide_out_left,  // exit animation
+                            R.anim.slide_in_left,   // pop enter animation
+                            R.anim.slide_out_right  // pop exit animation
+                    )
                     .replace(R.id.login_signup_fragment_container, new SignupFragment())
                     .addToBackStack(null)
                     .commit();
         });
 
+        // Add subtle focus animations to input fields
+        addInputFocusAnimations();
+
         return view;
+    }
+
+    /**
+     * Adds subtle scale animation when input fields gain focus
+     */
+    private void addInputFocusAnimations() {
+        View.OnFocusChangeListener focusListener = (v, hasFocus) -> {
+            float scale = hasFocus ? 1.02f : 1.0f;
+            v.animate()
+                    .scaleX(scale)
+                    .scaleY(scale)
+                    .setDuration(200)
+                    .setInterpolator(new AccelerateDecelerateInterpolator())
+                    .start();
+        };
+
+        loginUser.setOnFocusChangeListener(focusListener);
+        loginPass.setOnFocusChangeListener(focusListener);
+    }
+
+    /**
+     * Animates button click with squeeze effect
+     */
+    private void animateClickFeedback(View view) {
+        view.animate()
+                .scaleX(0.95f)
+                .scaleY(0.95f)
+                .setDuration(100)
+                .withEndAction(() -> {
+                    view.animate()
+                            .scaleX(1.0f)
+                            .scaleY(1.0f)
+                            .setDuration(100)
+                            .start();
+                })
+                .start();
+    }
+
+    /**
+     * Shakes the login form when authentication fails
+     */
+    private void shakeLoginForm() {
+        View loginForm = getView();
+        if (loginForm != null) {
+            Animation shake = AnimationUtils.loadAnimation(requireContext(), R.anim.shake);
+            loginForm.startAnimation(shake);
+        }
     }
 }
