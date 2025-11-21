@@ -414,7 +414,8 @@ public class DashboardActivity extends AppCompatActivity {
         // Check if we need to reset for a new day
         String lastResetDate = prefs.getString("last_reset_date", "");
         String today = java.text.DateFormat.getDateInstance().format(new java.util.Date());
-        
+
+        /* TODO: fix this so it doesn't always reset
         if (!today.equals(lastResetDate)) {
             // New day - reset all tasks
             SharedPreferences.Editor editor = prefs.edit();
@@ -426,6 +427,7 @@ public class DashboardActivity extends AppCompatActivity {
             editor.apply();
             Log.d(TAG, "🔄 Daily checklist reset for new day: " + today);
         }
+         */
         
         // Load current state and update UI
         boolean task1Complete = prefs.getBoolean("checklist_item_1", false);
@@ -600,6 +602,18 @@ public class DashboardActivity extends AppCompatActivity {
         SharedPreferences.Editor editor = prefs.edit();
         editor.clear();
         editor.apply();
+
+        //clear the tasks saved data
+        SharedPreferences task_prefs = getSharedPreferences("DailyTasks", MODE_PRIVATE);
+        SharedPreferences.Editor task_editor = task_prefs.edit();
+        task_editor.clear();
+        task_editor.apply();
+
+        //clear the shared preferences that hold the money a user has
+        SharedPreferences money_prefs = getSharedPreferences("DormPointsPrefs", MODE_PRIVATE);
+        SharedPreferences.Editor money_editor = money_prefs.edit();
+        money_editor.clear();
+        money_editor.apply();
 
         // Close modal before navigating away
         hideModal();
