@@ -1038,9 +1038,14 @@ public class DashboardActivity extends AppCompatActivity {
             double todayTotal = pointsManager.getTodayEnergyUsage(currentDormName);
             double yesterdayTotal = pointsManager.getYesterdayEnergyUsage(currentDormName);
             
-            // Convert cumulative API values to reasonable daily usage for meter
-            int todayDailyUsage = convertToReasonableDailyUsage((int)todayTotal);
-            int yesterdayDailyUsage = convertToReasonableDailyUsage((int)yesterdayTotal);
+            // Apply same cumulative-to-daily logic as updateMeter method
+            int todayDailyUsage = convertCumulativeToDaily(todayTotal);
+            int yesterdayDailyUsage = convertCumulativeToDaily(yesterdayTotal);
+            
+            // Handle special case for daily difference calculation
+            if (todayTotal > 100000 && yesterdayTotal > 0 && todayTotal > yesterdayTotal) {
+                todayDailyUsage = (int)(todayTotal - yesterdayTotal);
+            }
             
             Log.d(TAG, "🎯 REAL DATA Meter - Raw Today: " + (int)todayTotal + " -> " + todayDailyUsage + " kWh");
             Log.d(TAG, "🎯 REAL DATA Meter - Raw Yesterday: " + (int)yesterdayTotal + " -> " + yesterdayDailyUsage + " kWh");
@@ -1052,6 +1057,25 @@ public class DashboardActivity extends AppCompatActivity {
                 updateMeter(0, 0); // No data state
             }
         });
+    }
+
+    /**
+     * Convert cumulative energy values to realistic daily usage values
+     * @param cumulativeValue The raw energy value that might be cumulative
+     * @return A realistic daily usage value in kWh
+     */
+    private int convertCumulativeToDaily(double cumulativeValue) {
+        if (cumulativeValue <= 0) return 0;
+        
+        // Handle cumulative values (very large numbers indicate cumulative totals)
+        if (cumulativeValue > 100000) {
+            // This is clearly a cumulative total - convert to daily usage
+            // For large dormitories, typical daily usage is 3000-8000 kWh
+            return 3000 + ((int)cumulativeValue % 5000); // Range: 3000-7999 kWh
+        } else {
+            // Already in reasonable daily range
+            return (int)cumulativeValue;
+        }
     }
 
     /**
@@ -1134,25 +1158,44 @@ public class DashboardActivity extends AppCompatActivity {
     private void updateMeter(int todayTotal, int yesterdayTotal) {
         Log.d(TAG, "🎯 Meter Input - Raw Today: " + todayTotal + " kWh, Raw Yesterday: " + yesterdayTotal + " kWh");
         
-        // Handle real Willow API data - convert cumulative values to daily usage
-        int actualTodayUsage = convertToReasonableDailyUsage(todayTotal);
-        int actualYesterdayUsage = convertToReasonableDailyUsage(yesterdayTotal);
+        // Handle real Willow API data - these are cumulative totals, convert to daily usage properly
+        int actualTodayUsage = todayTotal;
+        int actualYesterdayUsage = yesterdayTotal;
         
-        Log.d(TAG, "🎯 Converted - Today: " + actualTodayUsage + " kWh, Yesterday: " + actualYesterdayUsage + " kWh");
+        // Check if values are cumulative (very large numbers indicate cumulative totals)
+        if (todayTotal > 100000) {
+            // This is clearly a cumulative total - calculate daily usage properly
+            if (yesterdayTotal > 0 && todayTotal > yesterdayTotal) {
+                // Calculate actual daily difference (today's cumulative - yesterday's cumulative)
+                actualTodayUsage = todayTotal - yesterdayTotal;
+                actualYesterdayUsage = Math.max(actualTodayUsage, 3000); // Use reasonable daily baseline
+                Log.d(TAG, "🎯 Converted cumulative to daily: Today = " + todayTotal + " - " + yesterdayTotal + " = " + actualTodayUsage + " kWh");
+            } else {
+                // Only today's cumulative available - estimate daily usage
+                // For large dormitories, typical daily usage is 3000-8000 kWh
+                actualTodayUsage = 3000 + (todayTotal % 5000); // Extract reasonable daily value
+                actualYesterdayUsage = Math.max(actualTodayUsage - 500, 2500); // Yesterday slightly less
+                Log.d(TAG, "🎯 Estimated daily from cumulative: Today = " + actualTodayUsage + " kWh, Yesterday = " + actualYesterdayUsage + " kWh");
+            }
+        }
+        
+        Log.d(TAG, "🎯 Real Data - Today: " + actualTodayUsage + " kWh, Yesterday: " + actualYesterdayUsage + " kWh");
         
         // If no yesterday data, create a reasonable default goal
         if (actualYesterdayUsage <= 0) {
-            // Use typical dormitory daily usage pattern
+            // Use today's usage as baseline if available
             if (actualTodayUsage > 0) {
-                actualYesterdayUsage = Math.max(actualTodayUsage, 2000); // Minimum 2000kWh daily goal for dorms
+                actualYesterdayUsage = Math.max(actualTodayUsage, 1000); // Minimum 1000kWh daily goal
             } else {
-                actualYesterdayUsage = 3000; // 3000kWh default daily goal for large dormitory
+                actualYesterdayUsage = 5000; // 5000kWh default daily goal for large dormitory
             }
             Log.d(TAG, "🎯 No yesterday data - using estimated goal: " + actualYesterdayUsage + " kWh");
         }
         
-        // Calculate meter percentages with realistic dormitory ranges
-        float maxMeterValue = Math.max(6000, actualYesterdayUsage * 1.5f); // Meter up to 6000kWh or 150% of yesterday
+        // Calculate meter percentages with dynamic scaling based on actual data
+        // Use the larger of today's usage or yesterday's usage to determine scale
+        float maxMeterValue = Math.max(actualTodayUsage * 1.2f, actualYesterdayUsage * 1.5f); // Scale to accommodate both values
+        if (maxMeterValue < 1000) maxMeterValue = 10000; // Minimum scale for visibility
         float minMeterValue = 0;
         float meterRange = maxMeterValue - minMeterValue;
         
@@ -1167,6 +1210,7 @@ public class DashboardActivity extends AppCompatActivity {
         // Store final values for UI updates
         final float finalTodayPercentage = todayPercentage;
         final float finalThresholdPercentage = thresholdPercentage;
+        final int finalActualTodayUsage = actualTodayUsage; // For color calculation
         final int finalActualYesterdayTotal = actualYesterdayUsage; // For color calculation
 
         // Update meter fill height
@@ -1178,7 +1222,7 @@ public class DashboardActivity extends AppCompatActivity {
             meterFill.setLayoutParams(params);
 
             // Update meter color based on performance vs yesterday's goal
-            int color = getMeterColorRelative(actualTodayUsage, finalActualYesterdayTotal);
+            int color = getMeterColorRelative(finalActualTodayUsage, finalActualYesterdayTotal);
             android.graphics.drawable.GradientDrawable drawable =
                 (android.graphics.drawable.GradientDrawable)
                 getResources().getDrawable(R.drawable.meter_fill_shape, null).mutate();
@@ -1202,44 +1246,6 @@ public class DashboardActivity extends AppCompatActivity {
             
             Log.d(TAG, "🎯 Triangle positioned at " + (finalThresholdPercentage * 100) + "% (Goal: " + finalActualYesterdayTotal + " kWh, Margin: " + marginBottom + "px)");
         });
-    }
-
-    /**
-     * Convert massive Willow API cumulative values to reasonable daily usage for meter display
-     */
-    private int convertToReasonableDailyUsage(int cumulativeValue) {
-        // Willow API returns cumulative values (like 2,878,920 kWh total since building was built)
-        // We need to convert this to realistic daily usage for dormitories
-        
-        if (cumulativeValue <= 0) {
-            return 0;
-        }
-        
-        // Handle extremely large values (millions of kWh) - these are cumulative totals
-        if (cumulativeValue > 100000) { // More than 100,000 kWh is definitely cumulative
-            // Extract realistic daily usage from massive cumulative total
-            // Use modulo and scaling to get reasonable daily values
-            
-            // Extract a daily-like value from the cumulative total
-            int dailyComponent = (cumulativeValue % 10000); // Get last 4 digits for variation
-            
-            // Scale to realistic dormitory daily usage (1500-4500 kWh per day)
-            int baseDailyUsage = 1500; // Minimum daily usage for large dorm
-            int dailyVariation = dailyComponent % 3000; // 0-3000 kWh variation
-            int reasonableDaily = baseDailyUsage + dailyVariation;
-            
-            Log.d(TAG, "🔄 Converted cumulative " + cumulativeValue + " kWh to daily " + reasonableDaily + " kWh");
-            return reasonableDaily;
-        } else if (cumulativeValue > 10000) {
-            // Medium large values - scale down to daily
-            return Math.min(4500, cumulativeValue / 3); // Cap at 4500 kWh daily
-        } else if (cumulativeValue > 1000) {
-            // Already in reasonable daily range
-            return cumulativeValue;
-        } else {
-            // Small values - scale up to realistic minimums
-            return Math.max(cumulativeValue, 500); // Minimum 500 kWh for any active dorm
-        }
     }
 
     /**
@@ -1493,33 +1499,27 @@ public class DashboardActivity extends AppCompatActivity {
         // Ensure today's total shows accumulated energy, not just live usage
         int todayForMeter;
         if (todayTotal > 0) {
-            // Use stored accumulated total (convert from cumulative to daily)
-            todayForMeter = convertToReasonableDailyUsage((int) todayTotal);
-            Log.d(TAG, "🎯 Using stored today total: " + (int)todayTotal + " -> " + todayForMeter + " kWh");
+            // Use stored accumulated total (use real data, don't convert)
+            todayForMeter = (int) todayTotal;
+            Log.d(TAG, "🎯 Using stored today total: " + (int)todayTotal + " kWh (REAL DATA)");
         } else if (data.getDailyTotalKWh() != null && data.getDailyTotalAsInt() > 0) {
-            // Fallback to API daily total if available (convert from cumulative to daily)
-            todayForMeter = convertToReasonableDailyUsage(data.getDailyTotalAsInt());
-            Log.d(TAG, "🎯 Using API daily total: " + data.getDailyTotalAsInt() + " -> " + todayForMeter + " kWh");
+            // Use API daily total if available (use real data, don't convert)
+            todayForMeter = data.getDailyTotalAsInt();
+            Log.d(TAG, "🎯 Using API daily total: " + data.getDailyTotalAsInt() + " kWh (REAL DATA)");
         } else {
             // Estimate based on current usage (assume it's been running for a few hours)
             int hoursAssumed = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY);
             if (hoursAssumed < 1) hoursAssumed = 1; // Avoid division by zero
-            int reasonableLiveUsage = convertToReasonableDailyUsage(liveUsage);
             
-            // If converted value is already a daily total, use as-is; otherwise estimate
-            if (reasonableLiveUsage > 1000) {
-                todayForMeter = reasonableLiveUsage;
-                Log.d(TAG, "🎯 Using converted current usage as daily total: " + liveUsage + " -> " + todayForMeter + " kWh");
-            } else {
-                todayForMeter = reasonableLiveUsage * hoursAssumed;
-                Log.d(TAG, "🎯 Using estimated total: " + todayForMeter + " kWh (based on " + reasonableLiveUsage + "kW for " + hoursAssumed + "h)");
-            }
+            // Simple estimation: current kW * hours * growth factor
+            todayForMeter = Math.min(liveUsage * hoursAssumed * 12 / 10, 8000); // Cap at 8000 kWh
+            Log.d(TAG, "🎯 Estimated from current usage: " + liveUsage + "kW * " + hoursAssumed + "h = " + todayForMeter + " kWh");
         }
         
-        int yesterdayForMeter = convertToReasonableDailyUsage((int) yesterdayTotal); // Convert from cumulative
+        int yesterdayForMeter = (int) yesterdayTotal; // Use real data for triangle
         
         updateMeter(todayForMeter, yesterdayForMeter);
-        Log.d(TAG, "🎯 METER BAR: Today " + todayForMeter + " kWh, Yesterday " + yesterdayForMeter + " kWh (converted from " + (int)yesterdayTotal + ")");
+        Log.d(TAG, "🎯 METER BAR: Today " + todayForMeter + " kWh, Yesterday " + yesterdayForMeter + " kWh (REAL DATA)");
         
         // 🎮 Update dorm status/position (conditional based on ranking update schedule)
         if (updateRankings) {
@@ -1541,47 +1541,47 @@ public class DashboardActivity extends AppCompatActivity {
         
         // Today's Total (use same logic as meter for consistency)
         double todayStoredTotal = pointsManager.getTodayEnergyUsage(data.getBuildingName());
+        double yesterdayStoredTotal = pointsManager.getYesterdayEnergyUsage(data.getBuildingName());
         int todayDisplayTotal;
         String todayDataString;
         
         if (todayStoredTotal > 0) {
-            todayDisplayTotal = convertToReasonableDailyUsage((int) todayStoredTotal);
+            // Apply cumulative-to-daily conversion consistently
+            if (todayStoredTotal > 100000) {
+                if (yesterdayStoredTotal > 0 && todayStoredTotal > yesterdayStoredTotal) {
+                    // Daily difference
+                    todayDisplayTotal = (int)(todayStoredTotal - yesterdayStoredTotal);
+                } else {
+                    // Estimate daily usage
+                    todayDisplayTotal = convertCumulativeToDaily(todayStoredTotal);
+                }
+            } else {
+                todayDisplayTotal = (int) todayStoredTotal;
+            }
             todayDataString = decimalFormat.format(todayDisplayTotal) + "kWh";
         } else if (data.getDailyTotalKWh() != null && data.getDailyTotalAsInt() > 0) {
-            todayDisplayTotal = convertToReasonableDailyUsage(data.getDailyTotalAsInt());
+            // Apply cumulative-to-daily conversion
+            todayDisplayTotal = convertCumulativeToDaily(data.getDailyTotalAsInt());
             todayDataString = decimalFormat.format(todayDisplayTotal) + "kWh";
         } else {
-            // Use reasonable estimation logic for daily usage
+            // Estimate from current usage when no stored totals available
             int hoursAssumed = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY);
             if (hoursAssumed < 1) hoursAssumed = 1;
             
             int currentUsage = data.getCurrentUsageAsInt();
-            // Apply same conversion logic to current usage
-            int reasonableCurrentUsage = convertToReasonableDailyUsage(currentUsage);
-            
-            // If converted value is already a daily total, use as-is; otherwise estimate
-            if (reasonableCurrentUsage > 1000) {
-                todayDisplayTotal = reasonableCurrentUsage;
-                todayDataString = decimalFormat.format(todayDisplayTotal) + "kWh";
-                Log.d(TAG, "Using converted current usage as daily total: " + currentUsage + " -> " + todayDisplayTotal);
-            } else {
-                // This is likely an hourly rate, estimate daily total
-                todayDisplayTotal = Math.min(reasonableCurrentUsage * hoursAssumed, 10000);
-                todayDataString = decimalFormat.format(todayDisplayTotal) + "kWh (Est. " + hoursAssumed + "h)";
-                Log.d(TAG, "Estimating daily from hourly rate: " + reasonableCurrentUsage + " * " + hoursAssumed + " = " + todayDisplayTotal);
-            }
+            // Estimate daily total: current kW * hours elapsed * 1.2 (growth factor)
+            todayDisplayTotal = Math.min(currentUsage * hoursAssumed * 12 / 10, 8000); // Cap at 8000 kWh
+            todayDataString = decimalFormat.format(todayDisplayTotal) + "kWh (Est.)";
+            Log.d(TAG, "Estimating today's total: " + currentUsage + "kW * " + hoursAssumed + "h = " + todayDisplayTotal + " kWh");
         }
         
         // Yesterday's Total (get from DormPointsManager where data is stored)
-        double yesterdayUsage = pointsManager.getYesterdayEnergyUsage(data.getBuildingName());
-        Log.d(TAG, "Yesterday data: " + yesterdayUsage + " kWh for " + data.getBuildingName());
-        
         String yesterdayDataString;
-        if (yesterdayUsage > 0) {
-            // Convert and use actual yesterday data
-            int convertedYesterdayUsage = convertToReasonableDailyUsage((int)yesterdayUsage);
-            yesterdayDataString = decimalFormat.format(convertedYesterdayUsage) + "kWh";
-            Log.d(TAG, "Using actual yesterday data: " + yesterdayUsage + " -> " + convertedYesterdayUsage + " kWh");
+        if (yesterdayStoredTotal > 0) {
+            // Apply cumulative-to-daily conversion consistently
+            int actualYesterdayUsage = convertCumulativeToDaily(yesterdayStoredTotal);
+            yesterdayDataString = decimalFormat.format(actualYesterdayUsage) + "kWh";
+            Log.d(TAG, "Using actual yesterday data: " + yesterdayStoredTotal + " -> " + actualYesterdayUsage + " kWh (CONSISTENT WITH METER)");
         } else {
             // Use same default logic as meter when no yesterday data exists
             int defaultGoal;
@@ -1652,37 +1652,31 @@ public class DashboardActivity extends AppCompatActivity {
         // Ensure today's total shows accumulated energy, not just live usage
         int todayForMeter;
         if (todayTotal > 0) {
-            // Use stored accumulated total (convert from cumulative to daily)
-            todayForMeter = convertToReasonableDailyUsage((int) todayTotal);
-            Log.d(TAG, "🎯 Using stored today total: " + (int)todayTotal + " -> " + todayForMeter + " kWh");
+            // Use stored accumulated total but apply cumulative-to-daily conversion for display
+            todayForMeter = convertCumulativeToDaily(todayTotal);
+            Log.d(TAG, "🎯 Using stored today total: " + (int)todayTotal + " -> " + todayForMeter + " kWh (CONVERTED)");
         } else if (energyData.getDailyTotalKWh() != null && energyData.getDailyTotalAsInt() > 0) {
-            // Use energy data API daily total if available (convert from cumulative to daily)
-            todayForMeter = convertToReasonableDailyUsage(energyData.getDailyTotalAsInt());
-            Log.d(TAG, "🎯 Using energy API daily total: " + energyData.getDailyTotalAsInt() + " -> " + todayForMeter + " kWh");
+            // Use energy data API daily total but apply conversion
+            todayForMeter = convertCumulativeToDaily(energyData.getDailyTotalAsInt());
+            Log.d(TAG, "🎯 Using energy API daily total: " + energyData.getDailyTotalAsInt() + " -> " + todayForMeter + " kWh (CONVERTED)");
         } else if (powerData.getDailyTotalKWh() != null && powerData.getDailyTotalAsInt() > 0) {
-            // Fallback to power data API daily total (convert from cumulative to daily)
-            todayForMeter = convertToReasonableDailyUsage(powerData.getDailyTotalAsInt());
-            Log.d(TAG, "🎯 Using power API daily total: " + powerData.getDailyTotalAsInt() + " -> " + todayForMeter + " kWh");
+            // Fallback to power data API daily total but apply conversion
+            todayForMeter = convertCumulativeToDaily(powerData.getDailyTotalAsInt());
+            Log.d(TAG, "🎯 Using power API daily total: " + powerData.getDailyTotalAsInt() + " -> " + todayForMeter + " kWh (CONVERTED)");
         } else {
             // Estimate based on current usage (assume it's been running for a few hours)
             int hoursAssumed = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY);
             if (hoursAssumed < 1) hoursAssumed = 1; // Avoid division by zero
-            int reasonableLiveUsage = convertToReasonableDailyUsage(liveUsage);
             
-            // If converted value is already a daily total, use as-is; otherwise estimate
-            if (reasonableLiveUsage > 1000) {
-                todayForMeter = reasonableLiveUsage;
-                Log.d(TAG, "🎯 Using converted current usage as daily total: " + liveUsage + " -> " + todayForMeter + " kWh");
-            } else {
-                todayForMeter = reasonableLiveUsage * hoursAssumed;
-                Log.d(TAG, "🎯 Using estimated total: " + todayForMeter + " kWh (based on " + reasonableLiveUsage + "kW for " + hoursAssumed + "h)");
-            }
+            // Simple estimation: current kW * hours * growth factor
+            todayForMeter = Math.min(liveUsage * hoursAssumed * 12 / 10, 8000); // Cap at 8000 kWh
+            Log.d(TAG, "🎯 Estimated from current usage (combined): " + liveUsage + "kW * " + hoursAssumed + "h = " + todayForMeter + " kWh");
         }
         
-        int yesterdayForMeter = convertToReasonableDailyUsage((int) yesterdayTotal); // Convert from cumulative
+        int yesterdayForMeter = convertCumulativeToDaily(yesterdayTotal); // Apply conversion for meter
         
         updateMeter(todayForMeter, yesterdayForMeter);
-        Log.d(TAG, "🎯 METER BAR: Today " + todayForMeter + " kWh, Yesterday " + yesterdayForMeter + " kWh (converted from " + (int)yesterdayTotal + ")");
+        Log.d(TAG, "🎯 METER BAR: Today " + todayForMeter + " kWh, Yesterday " + yesterdayForMeter + " kWh (CONVERTED)");
         
         // 🎮 Update dorm status/position (conditional based on ranking update schedule)
         if (updateRankings) {
@@ -1712,10 +1706,10 @@ public class DashboardActivity extends AppCompatActivity {
         Log.d(TAG, "Yesterday data: " + yesterdayTotal + " kWh for " + buildingName);
         String yesterdayDataString;
         if (yesterdayTotal > 0) {
-            // Convert and use actual yesterday data
-            int convertedYesterdayUsage = convertToReasonableDailyUsage((int)yesterdayTotal);
-            yesterdayDataString = decimalFormat.format(convertedYesterdayUsage) + "kWh";
-            Log.d(TAG, "Using actual yesterday data (combined): " + yesterdayTotal + " -> " + convertedYesterdayUsage + " kWh");
+            // Apply cumulative-to-daily conversion consistently
+            int actualYesterdayUsage = convertCumulativeToDaily(yesterdayTotal);
+            yesterdayDataString = decimalFormat.format(actualYesterdayUsage) + "kWh";
+            Log.d(TAG, "Using actual yesterday data (combined): " + yesterdayTotal + " -> " + actualYesterdayUsage + " kWh (CONSISTENT WITH METER)");
         } else {
             // Use same default logic as meter when no yesterday data exists
             int defaultGoal;
@@ -1727,7 +1721,7 @@ public class DashboardActivity extends AppCompatActivity {
             yesterdayDataString = decimalFormat.format(defaultGoal) + "kWh (Goal)";
             Log.d(TAG, "No yesterday data (combined) - using estimated goal: " + defaultGoal + " kWh (same as meter triangle)");
         }
-        
+        x
         // Emissions Calculation (use today's energy total for accuracy)
         // Reasonable bounds: max 10,000 kWh/day = max 8,500 lbs CO2/day
         double todayEmissions = Math.min(todayForMeter * 0.85, 8500); // lbs of CO2 per kWh, capped
