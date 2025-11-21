@@ -68,6 +68,25 @@ public class LoginFragment extends Fragment {
                             editor.putString("Dormitory", body.getUser().getDormName());
                             editor.apply();
 
+                            //calculate each of if the user has done each of the daily tasks
+                            Integer completedTasks = body.getUser().getIsDone();
+
+                            //the way this works is the number in it's binary representation corresponds to which tasks have been done
+                            // e.g. 5 = 101 in binary means tasks 1 and 3
+                            SharedPreferences tasks = requireActivity().getSharedPreferences("DailyTasks", Context.MODE_PRIVATE);
+                            SharedPreferences.Editor tasks_editor = tasks.edit();
+                            tasks_editor.putBoolean("checklist_item_1", (completedTasks & 0b001) != 0);
+                            tasks_editor.putBoolean("checklist_item_2", (completedTasks & 0b010) != 0);
+                            tasks_editor.putBoolean("checklist_item_3", (completedTasks & 0b100) != 0);
+
+                            if(completedTasks >= 7)
+                            {
+                                //set everything complete if the number is 7 or more
+                                tasks_editor.putBoolean("all_tasks", true);
+                            }
+
+                            tasks_editor.apply();
+
                             // Initialize user points from backend
                             DormPointsManager pointsManager = new DormPointsManager(requireContext());
                             pointsManager.initializePointsFromLogin(body.getUser().getSpendablePoints());

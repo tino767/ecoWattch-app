@@ -43,6 +43,7 @@ app.post("/login", async (req, res) => {
       let userData = {
         Username: fullUserData[0].Username,
         DormName: fullUserData[0].DormName,
+        isDone: fullUserData[0].isDone,
         SpendablePoints: 100 // Default value
       };
 
@@ -216,6 +217,52 @@ app.post("/update_user_points", async (req, res) => {
   } catch (error) {
     console.error("Update points error:", error);
     res.status(500).json({ status: "error", message: "Failed to update points" });
+  }
+});
+
+// ------------------------------
+// SET ISDONE endpoint
+// ------------------------------
+app.post("/is_done", async (req, res) => {
+  try {
+    const { username, points_add } = req.body;
+
+    //if the points add is -1, that acts as a reset flag
+    if(points_add === -1)
+    {
+      try {
+      //set the user's isDone to 0
+      await pool.query(
+        "UPDATE Users SET isDone = 0 WHERE Username = ?",
+        [username]
+      );
+      res.json({ status: "success", message: "checklist successfully reset" });
+      } catch (error) {
+      console.error("Update isDone error:", error);
+      res.status(500).json({ status: "error", message: "Failed to update checklist" });
+      }
+    }
+
+    //otherwise, the user clicked one of the checklist
+    else
+    {
+      try {
+      //set the user's isDone to what it is plus what we need to add
+      await pool.query(
+        "UPDATE Users SET isDone = isDone + ? WHERE Username = ?",
+        [points_add, username]
+      );
+      console.log("Rows affected:", res.affectedRows);
+      console.log("Username affected:", username);
+      res.json({ status: "success", message: "checklist successfully appended" });
+      } catch (error) {
+      console.error("Update isDone error:", error);
+      res.status(500).json({ status: "error", message: "Failed to update checklist" });
+      }
+    }
+  } catch (error) {
+    console.error("Update checklist error:", error);
+    res.status(500).json({ status: "error", message: "Failed to update checklist" });
   }
 });
 
