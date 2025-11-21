@@ -138,20 +138,18 @@ public class ShopActivity extends AppCompatActivity {
         palettesList.add(new ShopItem("PEACH", 500,
                 "#FFFFFF", "#AAAAAA", "#CD232E", "#1B1B1B", "#262626",
                 true, false));
-        palettesList.add(new ShopItem("BLUE", 500,
-                "#060606", "#1B1B1B", "#1956DB", "#BCBCBC", "#7D7D7D",
-                true, false));
-        // this one is fully just for testing
+
+        // demo palettes
         palettesList.add(new ShopItem("CYAN", 500,
                 "#FFFFFF", "#AAAAAA", "#19DBD1", "#313131", "#262626",
+                false, false));
+        palettesList.add(new ShopItem("BLUE", 500,
+                "#060606", "#1B1B1B", "#1956DB", "#BCBCBC", "#7D7D7D",
                 false, false));
 
         ownedList = new ArrayList<>();
         ownedList.add(new ShopItem("PEACH", 500,
                 "#FFFFFF", "#AAAAAA", "#CD232E", "#1B1B1B", "#262626",
-                true, false));
-        ownedList.add(new ShopItem("BLUE", 500,
-                "#060606", "#1B1B1B", "#1956DB", "#BCBCBC", "#7D7D7D",
                 true, false));
 
         // BACKEND: add API calls to get owned and offered palettes
