@@ -165,7 +165,7 @@ public class DormPointsManager {
     }
     
     /**
-     * Record today's energy usage for a dorm
+     * Record today's energy usage for a dorm (overwrites previous value)
      */
     public void recordTodayEnergyUsage(String dormName, double energyKWh) {
         String today = dateFormat.format(new Date());
@@ -180,6 +180,30 @@ public class DormPointsManager {
     }
     
     /**
+     * Update today's energy usage only if the new value is higher (proper accumulation)
+     */
+    public void updateTodayEnergyUsageIfHigher(String dormName, double newEnergyKWh) {
+        String today = dateFormat.format(new Date());
+        String key = TODAY_ENERGY_PREFIX + dormName + "_" + today;
+        
+        double currentTotal = prefs.getFloat(key, 0.0f);
+        
+        // Only update if the new value is higher (proper daily total behavior)
+        if (newEnergyKWh > currentTotal) {
+            prefs.edit()
+                    .putFloat(key, (float) newEnergyKWh)
+                    .putString(LAST_CHECK_DATE, today)
+                    .apply();
+            
+            Log.d(TAG, String.format("Updated today's energy for %s: %.2f kWh (was %.2f kWh)", 
+                    dormName, newEnergyKWh, currentTotal));
+        } else {
+            Log.d(TAG, String.format("Kept existing today's energy for %s: %.2f kWh (new value %.2f kWh was not higher)", 
+                    dormName, currentTotal, newEnergyKWh));
+        }
+    }
+    
+    /**
      * Get today's energy usage for a dorm
      */
     public double getTodayEnergyUsage(String dormName) {
@@ -190,6 +214,7 @@ public class DormPointsManager {
     
     /**
      * Get yesterday's energy usage for a dorm
+     * Returns actual stored data or 0 if no data exists
      */
     public double getYesterdayEnergyUsage(String dormName) {
         String yesterday = getYesterdayDate();
@@ -410,6 +435,34 @@ public class DormPointsManager {
         }
         
         return "UNRANKED";
+    }
+    
+    /**
+     * Get sorted array of dorm names in leaderboard order (1st, 2nd, 3rd)
+     * @return Array of 3 dorm names sorted by total points (highest to lowest)
+     */
+    public String[] getSortedLeaderboard() {
+        Map<String, Integer> rankings = getDormRankings();
+        
+        // Sort dorms by points (highest first)
+        java.util.List<Map.Entry<String, Integer>> sortedDorms = new java.util.ArrayList<>(rankings.entrySet());
+        java.util.Collections.sort(sortedDorms, new java.util.Comparator<Map.Entry<String, Integer>>() {
+            @Override
+            public int compare(Map.Entry<String, Integer> a, Map.Entry<String, Integer> b) {
+                return b.getValue().compareTo(a.getValue());
+            }
+        });
+        
+        // Create array of sorted dorm names
+        String[] leaderboard = new String[3];
+        for (int i = 0; i < Math.min(3, sortedDorms.size()); i++) {
+            leaderboard[i] = sortedDorms.get(i).getKey();
+        }
+        
+        Log.d(TAG, "Leaderboard order: 1st=" + leaderboard[0] + 
+                   ", 2nd=" + leaderboard[1] + ", 3rd=" + leaderboard[2]);
+        
+        return leaderboard;
     }
     
     /**

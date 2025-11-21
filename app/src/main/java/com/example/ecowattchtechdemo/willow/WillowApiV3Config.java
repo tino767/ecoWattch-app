@@ -25,9 +25,15 @@ public class WillowApiV3Config {
     public static final String TOKEN_TYPE = "Bearer";
     
     // Building Twin IDs for NAU dormitories - Loaded from BuildConfig (local.properties)
+    // Power Twin IDs (kW - instantaneous power consumption)
     public static final String TWIN_ID_TINSLEY = BuildConfig.TWIN_ID_TINSLEY;
     public static final String TWIN_ID_GABALDON = BuildConfig.TWIN_ID_GABALDON; 
     public static final String TWIN_ID_SECHRIST = BuildConfig.TWIN_ID_SECHRIST;
+    
+    // Energy Twin IDs (kWh - cumulative energy consumption)
+    public static final String TWIN_ID_TINSLEY_ENERGY = BuildConfig.TWIN_ID_TINSLEY_ENERGY;
+    public static final String TWIN_ID_GABALDON_ENERGY = BuildConfig.TWIN_ID_GABALDON_ENERGY;
+    public static final String TWIN_ID_SECHRIST_ENERGY = BuildConfig.TWIN_ID_SECHRIST_ENERGY;
     
     // Energy-related capability model IDs
     public static final String ENERGY_CONSUMPTION_MODEL = "dtmi:com:willowinc:EnergyConsumption;1";
@@ -38,10 +44,10 @@ public class WillowApiV3Config {
     public static final int DEFAULT_TIME_SERIES_LIMIT = 100;
     public static final long DEFAULT_TIME_RANGE_HOURS = 24;
     
-    // Request timeouts (in milliseconds)
-    public static final int CONNECTION_TIMEOUT = 30000;
-    public static final int READ_TIMEOUT = 30000;
-    public static final int WRITE_TIMEOUT = 30000;
+    // Request timeouts (in milliseconds) - Increased for reliable Willow API access
+    public static final int CONNECTION_TIMEOUT = 60000; // 60 seconds
+    public static final int READ_TIMEOUT = 90000;       // 90 seconds  
+    public static final int WRITE_TIMEOUT = 60000;      // 60 seconds
     
     // Headers
     public static final String CONTENT_TYPE_JSON = "application/json";

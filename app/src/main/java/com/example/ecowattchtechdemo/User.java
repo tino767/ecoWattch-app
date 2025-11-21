@@ -20,6 +20,9 @@ public class User {
     @SerializedName("Token")
     private Integer Token;
 
+    @SerializedName("isDone")
+    private Integer isDone;
+
     @SerializedName("EquppiedItem")
     private String EquppiedItem;
 
@@ -30,6 +33,8 @@ public class User {
     public String getDormName() {
         return DormName;
     }
+
+    public Integer getIsDone() { return isDone; }
 
     public Integer getSpendablePoints() {
         return SpendablePoints != null ? SpendablePoints : 0;
