@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import com.example.ecowattchtechdemo.gamification.DormPointsManager;
 
 import retrofit2.Call;
@@ -95,8 +96,8 @@ public class ShopActivity extends AppCompatActivity {
                 animateClickFeedback(view);
                 view.postDelayed(() -> {
                     finish();
-                    // Reverse animation: slide out to right, dashboard slides in from left
-                    overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right);
+                    // Fade animation for smooth page transition
+                    overridePendingTransition(R.anim.fade_in, R.anim.fade_out);
                 }, 150);
             }
         });
@@ -105,7 +106,7 @@ public class ShopActivity extends AppCompatActivity {
         tm = new ThemeManager(this);
 
         // Initialize empty lists first
-        palletsList = new ArrayList<>();
+        palettesList = new ArrayList<>();
         ownedList = new ArrayList<>();
 
         // Fetch palettes from API and initialize UI when response comes
@@ -184,26 +185,14 @@ public class ShopActivity extends AppCompatActivity {
             public void onItemClick(ShopItem item, int position) {
                 // Handle item click - check if owned or attempt purchase
 
-                // get colors for clicked palette
-                String[] colors = item.getColors();
+                // get colors for clicked palette from paletteColors map
+                String[] colors = paletteColors.get(item.getName());
                 if (colors == null || colors.length < 5) return;
 
                 // check for owned - only select if palette is owned
                 if (item.isOwned()) {
-                    // Apply the owned palette
-                    SharedPreferences prefs = getSharedPreferences("ThemePrefs", MODE_PRIVATE);
-                    SharedPreferences.Editor editor = prefs.edit();
-
-                    editor.putString("primary_color", colors[0]);
-                    editor.putString("secondary_color", colors[1]);
-                    editor.putString("accent_color", colors[2]);
-                    editor.putString("background_main", colors[3]);
-                    editor.putString("background_light", colors[4]);
-
-                    editor.apply();
-
-                    // Apply theme immediately
-                    tm.applyTheme();
+                    // Apply the owned palette (user-specific)
+                    applyPaletteColors(colors);
 
                     Toast.makeText(ShopActivity.this, "Applied " + item.getName() + " palette", Toast.LENGTH_SHORT).show();
                 } else {
@@ -226,24 +215,12 @@ public class ShopActivity extends AppCompatActivity {
             public void onItemClick(ShopItem item, int position) {
                 // Handle owned item click
 
-                // get colors for clicked palette
-                String[] colors = item.getColors();
+                // get colors for clicked palette from paletteColors map
+                String[] colors = paletteColors.get(item.getName());
                 if (colors == null || colors.length < 5) return;
 
-                // Apply the owned palette
-                SharedPreferences prefs = getSharedPreferences("ThemePrefs", MODE_PRIVATE);
-                SharedPreferences.Editor editor = prefs.edit();
-
-                editor.putString("primary_color", colors[0]);
-                editor.putString("secondary_color", colors[1]);
-                editor.putString("accent_color", colors[2]);
-                editor.putString("background_main", colors[3]);
-                editor.putString("background_light", colors[4]);
-
-                editor.apply();
-
-                // Apply theme immediately
-                tm.applyTheme();
+                // Apply the owned palette (user-specific)
+                applyPaletteColors(colors);
 
                 Toast.makeText(ShopActivity.this, "Applied " + item.getName() + " palette", Toast.LENGTH_SHORT).show();
             }
@@ -425,29 +402,32 @@ public class ShopActivity extends AppCompatActivity {
      */
     private void updatePalettesWithApiData() {
         Log.d(TAG, "Updating palettes with API data");
-        
+
         // Clear existing palettes list
-        palletsList.clear();
+        palettesList.clear();
         
+        // Get owned palettes from persistent storage
+        Set<String> ownedPalettes = getOwnedPalettes();
+
         // Recreate palette items with API data
         for (String paletteName : paletteColors.keySet()) {
             String[] colors = paletteColors.get(paletteName);
             if (colors != null && colors.length >= 7) {
                 ShopItem item = new ShopItem(paletteName, 500, colors[5], colors[6]);
-                
-                // Set ownership based on hardcoded values for now
-                if ("PEACH".equals(paletteName) || "BLUE".equals(paletteName)) {
+
+                // Set ownership based on saved data (PEACH is owned by default for new users)
+                if (ownedPalettes.contains(paletteName) || "PEACH".equals(paletteName)) {
                     item.setOwned(true);
                 }
-                
-                palletsList.add(item);
-                Log.d(TAG, "Added palette: " + paletteName + " with colors: " + java.util.Arrays.toString(colors));
+
+                palettesList.add(item);
+                Log.d(TAG, "Added palette: " + paletteName + " (owned=" + item.isOwned() + ") with colors: " + java.util.Arrays.toString(colors));
             }
         }
-        
+
         // Update owned list with API data
         ownedList.clear();
-        for (ShopItem item : palletsList) {
+        for (ShopItem item : palettesList) {
             if (item.isOwned()) {
                 ShopItem ownedItem = new ShopItem(item.getName(), item.getPrice(), 
                     paletteColors.get(item.getName())[5], paletteColors.get(item.getName())[6]);
@@ -465,8 +445,8 @@ public class ShopActivity extends AppCompatActivity {
         if (ownedAdapter != null) {
             ownedAdapter.notifyDataSetChanged();
         }
-        
-        Log.d(TAG, "UI updated with " + palletsList.size() + " palettes from API");
+
+        Log.d(TAG, "UI updated with " + palettesList.size() + " palettes from API");
     }
 
     /**
@@ -505,16 +485,32 @@ public class ShopActivity extends AppCompatActivity {
             // Update item ownership
             item.setOwned(true);
 
+            // Save ownership to persistent storage
+            saveOwnedPalette(item.getName());
+
             // Re-sort the palettes list so owned item moves to the end
             sortPalettesByOwnership();
 
-            palletsAdapter.notifyItemChanged(position);
+            palletsAdapter.notifyDataSetChanged();
 
-            // Add to owned list
-            ShopItem ownedItem = new ShopItem(item.getName(), item.getPrice(), item.getColors());
-            ownedItem.setOwned(true);
-            ownedList.add(ownedItem);
-            ownedAdapter.notifyDataSetChanged();
+            // Add to owned list if not already there
+            boolean alreadyInOwned = false;
+            for (ShopItem ownedItem : ownedList) {
+                if (ownedItem.getName().equals(item.getName())) {
+                    alreadyInOwned = true;
+                    break;
+                }
+            }
+
+            if (!alreadyInOwned) {
+                // Get the full color array from paletteColors map
+                String[] colors = paletteColors.get(item.getName());
+                ShopItem ownedItem = new ShopItem(item.getName(), item.getPrice(),
+                    colors[5], colors[6]);
+                ownedItem.setOwned(true);
+                ownedList.add(ownedItem);
+                ownedAdapter.notifyDataSetChanged();
+            }
 
             // Update points display
             updateEnergyPointsDisplay();
@@ -532,25 +528,47 @@ public class ShopActivity extends AppCompatActivity {
     }
 
     /**
-     * Apply a palette from ShopItem
+     * Apply a palette from ShopItem (user-specific)
      */
     private void applyPalette(ShopItem item) {
-        String[] colors = item.getColors();
+        // Get the full color array from paletteColors map
+        String[] colors = paletteColors.get(item.getName());
         if (colors == null || colors.length < 5) return;
+
+        applyPaletteColors(colors);
+    }
+
+    /**
+     * Apply palette colors to user-specific theme preferences
+     */
+    private void applyPaletteColors(String[] colors) {
+        if (colors == null || colors.length < 5) return;
+
+        // Get current username for user-specific storage
+        SharedPreferences userPrefs = getSharedPreferences("MyAppPrefs", MODE_PRIVATE);
+        String username = userPrefs.getString("Username", "");
+
+        if (username.isEmpty()) {
+            Log.w(TAG, "No username found - cannot apply palette");
+            return;
+        }
 
         SharedPreferences prefs = getSharedPreferences("ThemePrefs", MODE_PRIVATE);
         SharedPreferences.Editor editor = prefs.edit();
 
-        editor.putString("primary_color", colors[0]);
-        editor.putString("secondary_color", colors[1]);
-        editor.putString("accent_color", colors[2]);
-        editor.putString("background_main", colors[3]);
-        editor.putString("background_light", colors[4]);
+        // Store colors with user-specific keys
+        editor.putString("primary_color_" + username, colors[0]);
+        editor.putString("secondary_color_" + username, colors[1]);
+        editor.putString("accent_color_" + username, colors[2]);
+        editor.putString("background_main_" + username, colors[3]);
+        editor.putString("background_light_" + username, colors[4]);
 
         editor.apply();
 
         // Apply theme immediately
         tm.applyTheme();
+
+        Log.d(TAG, "Applied palette colors for user: " + username);
     }
 
     /**
@@ -596,6 +614,58 @@ public class ShopActivity extends AppCompatActivity {
                 Toast.makeText(ShopActivity.this, "Purchase saved locally, sync failed", Toast.LENGTH_SHORT).show();
             }
         });
+    }
+
+    /**
+     * Save an owned palette to persistent storage (user-specific)
+     */
+    private void saveOwnedPalette(String paletteName) {
+        // Get current username for user-specific storage
+        SharedPreferences userPrefs = getSharedPreferences("MyAppPrefs", MODE_PRIVATE);
+        String username = userPrefs.getString("Username", "");
+
+        if (username.isEmpty()) {
+            Log.w(TAG, "No username found - cannot save owned palette");
+            return;
+        }
+
+        SharedPreferences prefs = getSharedPreferences("ShopPrefs", MODE_PRIVATE);
+        String key = "owned_palettes_" + username;
+        Set<String> ownedPalettes = prefs.getStringSet(key, new java.util.HashSet<>());
+
+        // Create a new set to avoid modification issues
+        Set<String> updatedOwned = new java.util.HashSet<>(ownedPalettes);
+        updatedOwned.add(paletteName);
+
+        prefs.edit().putStringSet(key, updatedOwned).apply();
+        Log.d(TAG, "Saved owned palette for " + username + ": " + paletteName + " (total owned: " + updatedOwned.size() + ")");
+    }
+
+    /**
+     * Get all owned palettes from persistent storage (user-specific)
+     */
+    private Set<String> getOwnedPalettes() {
+        // Get current username for user-specific storage
+        SharedPreferences userPrefs = getSharedPreferences("MyAppPrefs", MODE_PRIVATE);
+        String username = userPrefs.getString("Username", "");
+
+        if (username.isEmpty()) {
+            Log.w(TAG, "No username found - returning default palette only");
+            Set<String> defaultSet = new java.util.HashSet<>();
+            defaultSet.add("PEACH");
+            return defaultSet;
+        }
+
+        SharedPreferences prefs = getSharedPreferences("ShopPrefs", MODE_PRIVATE);
+        String key = "owned_palettes_" + username;
+        Set<String> ownedPalettes = prefs.getStringSet(key, new java.util.HashSet<>());
+
+        // Always include PEACH as owned by default
+        Set<String> result = new java.util.HashSet<>(ownedPalettes);
+        result.add("PEACH");
+
+        Log.d(TAG, "Loaded owned palettes for " + username + ": " + result);
+        return result;
     }
 
     /**
