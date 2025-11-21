@@ -4,10 +4,12 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:tag="background_main"
     android:background="@color/background_dark">
 
     <!-- Gradient Background Circle -->
     <View
+        android:tag="circle_gradient"
         android:layout_width="600dp"
         android:layout_height="500dp"
         android:layout_alignParentBottom="true"
@@ -43,6 +45,7 @@
                     android:orientation="horizontal">
 
                     <TextView
+                        android:tag="dynamic_text"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
@@ -53,6 +56,7 @@
                         android:textStyle="bold" />
 
                     <TextView
+                        android:tag="dynamic_text"
                         android:id="@+id/back_button"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
@@ -69,6 +73,7 @@
 
                 <!-- Selected Day Energy Usage Label -->
                 <TextView
+                    android:tag="dynamic_text"
                     android:id="@+id/selected_day_energy_label"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -110,6 +115,7 @@
                 android:paddingBottom="20dp">
 
                 <TextView
+                    android:tag="dynamic_text"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="12dp"
@@ -138,6 +144,7 @@
                         android:orientation="vertical">
 
                         <TextView
+                            android:tag="dynamic_text"
                             android:id="@+id/second_place_dorm"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
@@ -148,6 +155,7 @@
                             android:textSize="11sp" />
 
                         <TextView
+                            android:tag="dynamic_text"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:fontFamily="@font/matrixtype_display"
@@ -169,6 +177,7 @@
                         android:orientation="vertical">
 
                         <TextView
+                            android:tag="dynamic_text"
                             android:id="@+id/first_place_dorm"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
@@ -179,6 +188,7 @@
                             android:textSize="11sp" />
 
                         <TextView
+                            android:tag="dynamic_text"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:fontFamily="@font/matrixtype_display"
@@ -200,6 +210,7 @@
                         android:orientation="vertical">
 
                         <TextView
+                            android:tag="dynamic_text"
                             android:id="@+id/third_place_dorm"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
@@ -210,6 +221,7 @@
                             android:textSize="11sp" />
 
                         <TextView
+                            android:tag="dynamic_text"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:fontFamily="@font/matrixtype_display"
@@ -270,6 +282,7 @@
                 android:paddingBottom="20dp">
 
                 <TextView
+                    android:tag="dynamic_text"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="12dp"
