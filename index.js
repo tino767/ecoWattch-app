@@ -44,7 +44,7 @@ app.post("/login", async (req, res) => {
         Username: fullUserData[0].Username,
         DormName: fullUserData[0].DormName,
         isDone: fullUserData[0].isDone,
-        SpendablePoints: 100 // Default value
+        SpendablePoints: 550 // Default value
       };
 
       try {
@@ -105,7 +105,7 @@ app.post("/signup", async (req, res) => {
     try {
       await pool.query(
         "INSERT INTO Users (Username, PasswordHash, DormName, SpendablePoints) VALUES (?, ?, ?, ?)",
-        [usernames, passHash, dormitory, 100]
+        [usernames, passHash, dormitory, 550]
       );
     } catch (error) {
       if (error.code === 'ER_BAD_FIELD_ERROR' && error.sqlMessage.includes('SpendablePoints')) {
