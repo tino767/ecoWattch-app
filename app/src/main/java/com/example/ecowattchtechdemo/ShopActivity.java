@@ -282,7 +282,7 @@ public class ShopActivity extends AppCompatActivity {
      * Sort palettes list: unowned items first, owned items last
      */
     private void sortPalettesByOwnership() {
-        java.util.Collections.sort(palletsList, new java.util.Comparator<ShopItem>() {
+        java.util.Collections.sort(palettesList, new java.util.Comparator<ShopItem>() {
             @Override
             public int compare(ShopItem item1, ShopItem item2) {
                 // Unowned (false) should come before owned (true)
