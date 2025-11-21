@@ -2,6 +2,7 @@ package com.example.ecowattchtechdemo;
 
 import android.animation.ValueAnimator;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -15,11 +16,16 @@ import androidx.fragment.app.Fragment;
 import java.text.DecimalFormat;
 
 public class DashContentFragment extends Fragment {
+    
+    private static final String TAG = "DashContentFragment";
 
     private TextView usernameText;
     private TextView currentUsageText;
     private TextView yesterdaysTotalText;
     private TextView potentialEnergyText;
+    private TextView leaderboardFirstPlace;
+    private TextView leaderboardSecondPlace;
+    private TextView leaderboardThirdPlace;
     // theme manager
     private ThemeManager tm;
 
@@ -53,6 +59,13 @@ public class DashContentFragment extends Fragment {
         currentUsageText = view.findViewById(R.id.current_usage_text);
         yesterdaysTotalText = view.findViewById(R.id.yesterdays_total_text);
         potentialEnergyText = view.findViewById(R.id.potential_energy_text);
+        leaderboardFirstPlace = view.findViewById(R.id.leaderboard_first_place);
+        leaderboardSecondPlace = view.findViewById(R.id.leaderboard_second_place);
+        leaderboardThirdPlace = view.findViewById(R.id.leaderboard_third_place);
+        
+        Log.d(TAG, "🏆 Leaderboard TextViews initialized: 1st=" + (leaderboardFirstPlace != null) + 
+                   ", 2nd=" + (leaderboardSecondPlace != null) + 
+                   ", 3rd=" + (leaderboardThirdPlace != null));
         
         // Manual refresh features removed - app now updates automatically
         // Users can no longer manually trigger data updates
@@ -185,5 +198,66 @@ public class DashContentFragment extends Fragment {
         });
 
         animator.start();
+    }
+
+    /**
+     * Updates the leaderboard display with current rankings
+     * @param rankings Array of exactly 3 dorm names in rank order (1st, 2nd, 3rd)
+     */
+    public void updateLeaderboard(String[] rankings) {
+        Log.d(TAG, "🏆 updateLeaderboard called with: " + (rankings != null ? 
+            String.format("[%s, %s, %s]", rankings[0], rankings[1], rankings[2]) : "null"));
+        
+        if (rankings == null || rankings.length < 3) {
+            Log.w(TAG, "🏆 Invalid rankings array - skipping update");
+            return;
+        }
+
+        if (leaderboardFirstPlace != null) {
+            String formattedName = toTitleCase(rankings[0]);
+            String newText = "1st: " + formattedName;
+            leaderboardFirstPlace.setText(newText);
+            leaderboardFirstPlace.invalidate();
+            Log.d(TAG, "🏆 Updated 1st place to: " + formattedName);
+        } else {
+            Log.w(TAG, "🏆 leaderboardFirstPlace TextView is null!");
+        }
+        
+        if (leaderboardSecondPlace != null) {
+            String formattedName = toTitleCase(rankings[1]);
+            String newText = "2nd: " + formattedName;
+            leaderboardSecondPlace.setText(newText);
+            leaderboardSecondPlace.invalidate();
+            Log.d(TAG, "🏆 Updated 2nd place to: " + formattedName);
+        } else {
+            Log.w(TAG, "🏆 leaderboardSecondPlace TextView is null!");
+        }
+        
+        if (leaderboardThirdPlace != null) {
+            String formattedName = toTitleCase(rankings[2]);
+            String newText = "3rd: " + formattedName;
+            leaderboardThirdPlace.setText(newText);
+            leaderboardThirdPlace.invalidate();
+            Log.d(TAG, "🏆 Updated 3rd place to: " + formattedName);
+        } else {
+            Log.w(TAG, "🏆 leaderboardThirdPlace TextView is null!");
+        }
+        
+        // Force the parent view to refresh
+        if (getView() != null) {
+            getView().invalidate();
+        }
+    }
+    
+    /**
+     * Convert a string to title case (first letter uppercase, rest lowercase)
+     * @param input The input string (e.g., "TINSLEY")
+     * @return Title case string (e.g., "Tinsley")
+     */
+    private String toTitleCase(String input) {
+        if (input == null || input.isEmpty()) {
+            return input;
+        }
+        return input.substring(0, 1).toUpperCase() + input.substring(1).toLowerCase();
     }
 }

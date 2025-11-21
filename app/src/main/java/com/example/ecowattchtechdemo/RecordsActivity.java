@@ -401,9 +401,9 @@ public class RecordsActivity extends AppCompatActivity {
             );
             leftText.setLayoutParams(leftParams);
 
-            // Right side: streak days and points
+            // Right side: streak days only
             TextView rightText = new TextView(this);
-            rightText.setText(String.format("%d day streak (%d pts)", entry.streakDays, entry.streakPoints));
+            rightText.setText(String.format("%d day streak", entry.streakDays));
             rightText.setTextColor(ContextCompat.getColor(this, R.color.white));
             rightText.setTextSize(13);
             rightText.setTypeface(getResources().getFont(R.font.matrixtype_display));
@@ -553,29 +553,24 @@ public class RecordsActivity extends AppCompatActivity {
      * Load real streaks data based on actual dorm check-ins and efficiency
      */
     private void loadRealStreaksData(DormPointsManager pointsManager) {
-        String[] dorms = {"TINSLEY", "GABALDON", "SECHRIST"};
+        // TODO: Replace with real user data from backend
+        // For now, using dummy users with realistic streak data
+        String[] dummyUsers = {
+            "Sarah_T", "Mike_A", "Emma_W", "Josh_K", "Lisa_M",
+            "Ryan_B", "Anna_S", "Chris_D", "Maya_L", "Alex_P"
+        };
         
-        for (String dorm : dorms) {
-            // Base streak calculation (would come from actual check-in data in production)
-            int baseStreakDays = 3 + (int)(Math.random() * 12); // 3-15 days
+        // Generate varied streak data for dummy users
+        for (String userName : dummyUsers) {
+            // Random streak days between 3 and 21 days
+            int baseStreakDays = 14 + (int)(Math.random() * 19);
             int streakPoints = baseStreakDays * 25; // 25 points per day
             
-            // Add efficiency bonus based on real energy usage
-            double todayUsage = pointsManager.getTodayEnergyUsage(dorm);
-            if (todayUsage > 0) {
-                int dailyUsage = convertToReasonableDailyUsageForDorm((int)todayUsage, dorm);
-                int maxExpected = getMaxExpectedUsageForDorm(dorm);
-                
-                if (dailyUsage < maxExpected * 0.8) { // Efficient usage
-                    streakPoints += 200; // Large efficiency bonus
-                } else if (dailyUsage < maxExpected * 0.9) { // Good usage  
-                    streakPoints += 100; // Medium efficiency bonus
-                } else if (dailyUsage < maxExpected) { // Average usage
-                    streakPoints += 50; // Small efficiency bonus
-                }
-            }
+            // Add some random bonus points for variety
+            int bonusPoints = (int)(Math.random() * 300); // 0-300 bonus points
+            streakPoints += bonusPoints;
             
-            streaksLeaderboard.add(new StreakEntry(dorm, baseStreakDays, streakPoints));
+            streaksLeaderboard.add(new StreakEntry(userName, baseStreakDays, streakPoints));
         }
         
         // Sort by streak points (highest first)
@@ -585,6 +580,11 @@ public class RecordsActivity extends AppCompatActivity {
                 return Integer.compare(b.streakPoints, a.streakPoints);
             }
         });
+        
+        // Keep only top entries to avoid cluttering the UI
+        if (streaksLeaderboard.size() > 10) {
+            streaksLeaderboard = new ArrayList<>(streaksLeaderboard.subList(0, 10));
+        }
     }
     
     /**

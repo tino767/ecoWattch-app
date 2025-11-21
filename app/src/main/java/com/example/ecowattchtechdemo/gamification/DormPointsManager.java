@@ -438,6 +438,34 @@ public class DormPointsManager {
     }
     
     /**
+     * Get sorted array of dorm names in leaderboard order (1st, 2nd, 3rd)
+     * @return Array of 3 dorm names sorted by total points (highest to lowest)
+     */
+    public String[] getSortedLeaderboard() {
+        Map<String, Integer> rankings = getDormRankings();
+        
+        // Sort dorms by points (highest first)
+        java.util.List<Map.Entry<String, Integer>> sortedDorms = new java.util.ArrayList<>(rankings.entrySet());
+        java.util.Collections.sort(sortedDorms, new java.util.Comparator<Map.Entry<String, Integer>>() {
+            @Override
+            public int compare(Map.Entry<String, Integer> a, Map.Entry<String, Integer> b) {
+                return b.getValue().compareTo(a.getValue());
+            }
+        });
+        
+        // Create array of sorted dorm names
+        String[] leaderboard = new String[3];
+        for (int i = 0; i < Math.min(3, sortedDorms.size()); i++) {
+            leaderboard[i] = sortedDorms.get(i).getKey();
+        }
+        
+        Log.d(TAG, "Leaderboard order: 1st=" + leaderboard[0] + 
+                   ", 2nd=" + leaderboard[1] + ", 3rd=" + leaderboard[2]);
+        
+        return leaderboard;
+    }
+    
+    /**
      * Check if rally period is still active
      */
     public boolean isRallyPeriodActive() {

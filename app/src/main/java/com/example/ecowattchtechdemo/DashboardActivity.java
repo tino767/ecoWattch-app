@@ -56,8 +56,8 @@ public class DashboardActivity extends AppCompatActivity {
     private static final long LIVE_ENERGY_INTERVAL = 60000;      // 1 minute - live energy data
     private static final long POTENTIAL_ENERGY_INTERVAL = 3600000; // 1 hour - potential energy (only changes at 10pm)
     private static final long RANKINGS_INTERVAL = 120000;        // 2 minutes - dorm rankings/positions (more responsive)
-    private static final long ROTATING_DISPLAY_INTERVAL = 10000;  // 10 seconds - rotating display cycle
-    
+    private static final long ROTATING_DISPLAY_INTERVAL = 5000;   // 5 seconds - rotating display cycle
+
     // Tracking last update times
     private long lastLiveEnergyUpdate = 0;
     private long lastPotentialEnergyUpdate = 0;
@@ -1214,25 +1214,50 @@ public class DashboardActivity extends AppCompatActivity {
             }
         });
 
-        // Wait for layout to complete before initializing meter
-        meterFill.getViewTreeObserver().addOnGlobalLayoutListener(
-            new android.view.ViewTreeObserver.OnGlobalLayoutListener() {
-                @Override
-                public void onGlobalLayout() {
-                    // Remove listener to prevent multiple calls
-                    meterFill.getViewTreeObserver().removeOnGlobalLayoutListener(this);
-
-                    // Now layout is complete, initialize meter
-                    if (energyDataManager != null) {
-                        double yesterdayThreshold = energyDataManager.getYesterdayEnergyUsage(currentDormName);
-                        int dynamicThreshold = yesterdayThreshold > 0 ? (int)yesterdayThreshold : thresholdValue;
-                        updateMeter(currentUsage, dynamicThreshold);
-                    } else {
-                        updateMeter(currentUsage, thresholdValue);
-                    }
+        // Note: Meter is already initialized above with real data from DormPointsManager
+        // No need for additional layout listener initialization
+        
+        // Initialize leaderboard with current rankings (delayed to ensure view is ready)
+        meterFill.post(() -> {
+            if (dashContentFragment != null && dashContentFragment.isAdded()) {
+                DormPointsManager pointsManager = new DormPointsManager(this);
+                String[] leaderboard = getSortedDormLeaderboard(pointsManager);
+                if (leaderboard != null) {
+                    dashContentFragment.updateLeaderboard(leaderboard);
+                    Log.d(TAG, "🏆 Initial leaderboard set: 1st=" + leaderboard[0] + 
+                               ", 2nd=" + leaderboard[1] + ", 3rd=" + leaderboard[2]);
                 }
             }
-        );
+        });
+    }
+
+    /**
+     * Get sorted leaderboard array from DormPointsManager rankings
+     * @param pointsManager The DormPointsManager instance
+     * @return Array of 3 dorm names sorted by total points (highest to lowest)
+     */
+    private String[] getSortedDormLeaderboard(DormPointsManager pointsManager) {
+        Map<String, Integer> rankings = pointsManager.getDormRankings();
+        
+        // Sort dorms by points (highest first)
+        java.util.List<Map.Entry<String, Integer>> sortedDorms = new java.util.ArrayList<>(rankings.entrySet());
+        java.util.Collections.sort(sortedDorms, new java.util.Comparator<Map.Entry<String, Integer>>() {
+            @Override
+            public int compare(Map.Entry<String, Integer> a, Map.Entry<String, Integer> b) {
+                return b.getValue().compareTo(a.getValue());
+            }
+        });
+        
+        // Create array of sorted dorm names
+        String[] leaderboard = new String[3];
+        for (int i = 0; i < Math.min(3, sortedDorms.size()); i++) {
+            leaderboard[i] = sortedDorms.get(i).getKey();
+        }
+        
+        Log.d(TAG, "Leaderboard order: 1st=" + leaderboard[0] + 
+                   ", 2nd=" + leaderboard[1] + ", 3rd=" + leaderboard[2]);
+        
+        return leaderboard;
     }
 
     /**
@@ -1327,40 +1352,24 @@ public class DashboardActivity extends AppCompatActivity {
 
     private void updateMeter(int todayTotal, int yesterdayTotal) {
         Log.d(TAG, "🎯 ===== METER UPDATE START =====");
-        Log.d(TAG, "🎯 Meter Input - Raw Today: " + todayTotal + " kWh, Raw Yesterday: " + yesterdayTotal + " kWh");
+        Log.d(TAG, "🎯 Meter Input - Today: " + todayTotal + " kWh, Yesterday: " + yesterdayTotal + " kWh");
 
-        // Handle real Willow API data - these are cumulative totals, convert to daily usage properly
+        // These values should already be converted to daily usage by the calling method
+        // No additional conversion needed here
         int actualTodayUsage = todayTotal;
         int actualYesterdayUsage = yesterdayTotal;
         
-        // Check if values are cumulative (very large numbers indicate cumulative totals)
-        if (todayTotal > 100000) {
-            // This is clearly a cumulative total - calculate daily usage properly
-            if (yesterdayTotal > 0 && todayTotal > yesterdayTotal) {
-                // Calculate actual daily difference (today's cumulative - yesterday's cumulative)
-                actualTodayUsage = todayTotal - yesterdayTotal;
-                actualYesterdayUsage = Math.max(actualTodayUsage, 3000); // Use reasonable daily baseline
-                Log.d(TAG, "🎯 Converted cumulative to daily: Today = " + todayTotal + " - " + yesterdayTotal + " = " + actualTodayUsage + " kWh");
-            } else {
-                // Only today's cumulative available - estimate daily usage
-                // For large dormitories, typical daily usage is 3000-8000 kWh
-                actualTodayUsage = 3000 + (todayTotal % 5000); // Extract reasonable daily value
-                actualYesterdayUsage = Math.max(actualTodayUsage - 500, 2500); // Yesterday slightly less
-                Log.d(TAG, "🎯 Estimated daily from cumulative: Today = " + actualTodayUsage + " kWh, Yesterday = " + actualYesterdayUsage + " kWh");
-            }
-        }
-        
-        Log.d(TAG, "🎯 Real Data - Today: " + actualTodayUsage + " kWh, Yesterday: " + actualYesterdayUsage + " kWh");
+        Log.d(TAG, "🎯 Using values as-is (already converted): Today = " + actualTodayUsage + " kWh, Yesterday = " + actualYesterdayUsage + " kWh");
         
         // If no yesterday data, create a reasonable default goal
         if (actualYesterdayUsage <= 0) {
-            // Use today's usage as baseline if available
+            // Use today's usage as baseline if available, with 8% reduction goal
             if (actualTodayUsage > 0) {
-                actualYesterdayUsage = Math.max(actualTodayUsage, 1000); // Minimum 1000kWh daily goal
+                actualYesterdayUsage = Math.max((int)(actualTodayUsage * 0.92), 1000); // 8% reduction, minimum 1000kWh
             } else {
-                actualYesterdayUsage = 5000; // 5000kWh default daily goal for large dormitory
+                actualYesterdayUsage = 3000; // 3000kWh default daily goal for large dormitory
             }
-            Log.d(TAG, "🎯 No yesterday data - using estimated goal: " + actualYesterdayUsage + " kWh");
+            Log.d(TAG, "🎯 No yesterday data - using estimated goal: " + actualYesterdayUsage + " kWh (92% of today)");
         }
         
         // Calculate meter percentages with dynamic scaling based on actual data
@@ -1416,9 +1425,8 @@ public class DashboardActivity extends AppCompatActivity {
                     meterFill.setLayoutParams(layoutParams);
                 }
 
-                // Update color based on current animated height
-                float currentPercentage = parentHeight > 0 ? (float) animatedHeight / parentHeight : 0;
-                int color = getMeterColor(currentPercentage);
+                // Update color based on today's usage vs yesterday's goal (not percentage)
+                int color = getMeterColorRelative(finalActualTodayUsage, finalActualYesterdayTotal);
 
                 // Create a GradientDrawable with rounded corners to preserve border radius
                 android.graphics.drawable.GradientDrawable drawable = new android.graphics.drawable.GradientDrawable();
@@ -1489,7 +1497,7 @@ public class DashboardActivity extends AppCompatActivity {
 
     /**
      * Calculate meter color based on today's performance relative to yesterday's goal
-     * Green = Meeting or beating yesterday's goal, Yellow = Close to goal, Red = Exceeding goal (using more energy)
+     * Green = Using less than yesterday (good!), Yellow = Within 5% of yesterday, Red = Using more than yesterday (bad!)
      */
     private int getMeterColorRelative(int todayTotal, int yesterdayGoal) {
         if (yesterdayGoal <= 0) {
@@ -1499,11 +1507,11 @@ public class DashboardActivity extends AppCompatActivity {
         
         float ratio = (float) todayTotal / (float) yesterdayGoal;
         
-        if (ratio <= 0.9f) {
-            // Much better than yesterday (using less energy) - Bright Green
+        if (ratio <= 0.95f) {
+            // Better than yesterday (using ≤95% of yesterday's energy) - Bright Green
             return Color.rgb(76, 175, 80);
-        } else if (ratio <= 1.1f) {
-            // Close to yesterday's usage (within 10%) - Yellow/Orange
+        } else if (ratio <= 1.05f) {
+            // Close to yesterday's usage (within 5%) - Yellow/Orange
             return Color.rgb(255, 193, 7);
         } else {
             // Using more energy than yesterday's goal - Red (needs improvement)
@@ -1746,9 +1754,20 @@ public class DashboardActivity extends AppCompatActivity {
 
         // 🎮 Update dorm status/position (conditional based on ranking update schedule)
         if (updateRankings) {
-            String position = energyDataManager.getBuildingPosition(data.getBuildingName());
+            String position = pointsManager.getDormPosition(data.getBuildingName());
             cachedDormPosition = position;
             Log.d(TAG, "🏆 Rankings updated - Position: " + position);
+            
+            // Update leaderboard display in fragment (on UI thread)
+            String[] leaderboard = getSortedDormLeaderboard(pointsManager);
+            if (dashContentFragment != null && dashContentFragment.isAdded() && leaderboard != null) {
+                final String[] finalLeaderboard = leaderboard;
+                runOnUiThread(() -> {
+                    dashContentFragment.updateLeaderboard(finalLeaderboard);
+                    Log.d(TAG, "🏆 Leaderboard display updated: 1st=" + finalLeaderboard[0] + 
+                               ", 2nd=" + finalLeaderboard[1] + ", 3rd=" + finalLeaderboard[2]);
+                });
+            }
         }
         String statusText = data.getBuildingName() + " - " + (cachedDormPosition != null ? cachedDormPosition : "LIVE DATA");
         dashContentFragment.updateDormStatus(statusText);
@@ -1809,12 +1828,13 @@ public class DashboardActivity extends AppCompatActivity {
             // Use same default logic as meter when no yesterday data exists
             int defaultGoal;
             if (todayDisplayTotal > 0) {
-                defaultGoal = Math.max(todayDisplayTotal, 2000); // Minimum 2000kWh daily goal for dorms
+                // Set goal to 90-95% of today's usage (encouraging energy reduction)
+                defaultGoal = Math.max((int)(todayDisplayTotal * 0.92), 2000); // 8% reduction goal, minimum 2000kWh
             } else {
                 defaultGoal = 3000; // 3000kWh default daily goal for large dormitory
             }
             yesterdayDataString = decimalFormat.format(defaultGoal) + "kWh (Goal)";
-            Log.d(TAG, "No yesterday data - using estimated goal: " + defaultGoal + " kWh (same as meter triangle)");
+            Log.d(TAG, "No yesterday data - using estimated goal: " + defaultGoal + " kWh (8% reduction from today: " + todayDisplayTotal + ")");
         }
         
         // Emissions Calculation (use same total as meter and display for consistency)
@@ -1903,9 +1923,20 @@ public class DashboardActivity extends AppCompatActivity {
         
         // 🎮 Update dorm status/position (conditional based on ranking update schedule)
         if (updateRankings) {
-            String position = energyDataManager.getBuildingPosition(buildingName);
+            String position = pointsManager.getDormPosition(buildingName);
             cachedDormPosition = position;
             Log.d(TAG, "🏆 Rankings updated - Position: " + position);
+            
+            // Update leaderboard display in fragment (on UI thread)
+            String[] leaderboard = getSortedDormLeaderboard(pointsManager);
+            if (dashContentFragment != null && dashContentFragment.isAdded() && leaderboard != null) {
+                final String[] finalLeaderboard = leaderboard;
+                runOnUiThread(() -> {
+                    dashContentFragment.updateLeaderboard(finalLeaderboard);
+                    Log.d(TAG, "🏆 Leaderboard display updated: 1st=" + finalLeaderboard[0] + 
+                               ", 2nd=" + finalLeaderboard[1] + ", 3rd=" + finalLeaderboard[2]);
+                });
+            }
         }
         String statusText = buildingName + " - " + (cachedDormPosition != null ? cachedDormPosition : "LIVE DATA");
         dashContentFragment.updateDormStatus(statusText);
@@ -1937,12 +1968,13 @@ public class DashboardActivity extends AppCompatActivity {
             // Use same default logic as meter when no yesterday data exists
             int defaultGoal;
             if (todayForMeter > 0) {
-                defaultGoal = Math.max(todayForMeter, 2000); // Minimum 2000kWh daily goal for dorms
+                // Set goal to 90-95% of today's usage (encouraging energy reduction)
+                defaultGoal = Math.max((int)(todayForMeter * 0.92), 2000); // 8% reduction goal, minimum 2000kWh
             } else {
                 defaultGoal = 3000; // 3000kWh default daily goal for large dormitory
             }
             yesterdayDataString = decimalFormat.format(defaultGoal) + "kWh (Goal)";
-            Log.d(TAG, "No yesterday data (combined) - using estimated goal: " + defaultGoal + " kWh (same as meter triangle)");
+            Log.d(TAG, "No yesterday data (combined) - using estimated goal: " + defaultGoal + " kWh (8% reduction from today: " + todayForMeter + ")");
         }
 
         // Emissions Calculation (use today's energy total for accuracy)
@@ -1953,7 +1985,7 @@ public class DashboardActivity extends AppCompatActivity {
         
         // Populate rotating display data array
         if (rotatingDisplayData != null) {
-            rotatingDisplayData[0] = todayDataString;      // Today's Total (kWh accumulated)
+            rotatingDisplayData[0] = todayDataString;      // Today's Total (kWh)
             rotatingDisplayData[1] = yesterdayDataString;  // Yesterday's Goal (kWh target - same as triangle)
             rotatingDisplayData[2] = emissionsDataString;  // Today's Emissions
         }
