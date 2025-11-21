@@ -9,4 +9,5 @@ public class ApiResponse {
 
     @SerializedName("palettes")
     public List<Palette> palettes;
+
 }

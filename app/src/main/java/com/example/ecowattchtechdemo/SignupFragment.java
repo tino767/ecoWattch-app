@@ -28,6 +28,7 @@ import androidx.work.WorkManager;
 import com.android.volley.Request;
 import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.Volley;
+import com.example.ecowattchtechdemo.gamification.DormPointsManager;
 import com.google.android.material.textfield.TextInputEditText;
 
 import org.json.JSONException;
@@ -91,13 +92,6 @@ public class SignupFragment extends Fragment {
             JsonObjectRequest request = new JsonObjectRequest(Request.Method.POST, url, jsonBody,
                     response -> {
                         Toast.makeText(requireContext(), "Sign-up successful!", Toast.LENGTH_SHORT).show();
-
-                        //get the stuff from the sign up
-                        SharedPreferences prefs = requireActivity().getSharedPreferences("MyAppPrefs", Context.MODE_PRIVATE);
-                        SharedPreferences.Editor editor = prefs.edit();
-                        editor.putString("Username", username);
-                        editor.putString("Dormitory", dormitory);
-                        editor.apply();
                     },
                     error -> {
                         String errorMsg = "Sign-up failed";
@@ -116,11 +110,22 @@ public class SignupFragment extends Fragment {
                     }
             );
 
+            //get the stuff from the sign up
+            SharedPreferences prefs = requireActivity().getSharedPreferences("MyAppPrefs", Context.MODE_PRIVATE);
+            SharedPreferences.Editor editor = prefs.edit();
+            editor.putString("Username", username);
+            editor.putString("Dormitory", dormitory);
+            editor.apply();
+
+            // Initialize user points from backend
+            DormPointsManager pointsManager = new DormPointsManager(requireContext());
+            pointsManager.initializePointsFromLogin(550); //new user start with 550, for demo purposes
+
             Volley.newRequestQueue(requireContext()).add(request);
 
             // TEMP: reset checklist progress on signup
-            SharedPreferences prefs = requireContext().getSharedPreferences("DailyTasks", Context.MODE_PRIVATE);
-            prefs.edit()
+            SharedPreferences task_prefs = requireContext().getSharedPreferences("DailyTasks", Context.MODE_PRIVATE);
+            task_prefs.edit()
                     .putBoolean("checklist_item_1", false)
                     .putBoolean("checklist_item_2", false)
                     .putBoolean("checklist_item_3", false)
