@@ -1,5 +1,8 @@
 package com.example.ecowattchtechdemo;
 
+
+
+
 import android.graphics.Color;
 import android.os.Bundle;
 import androidx.appcompat.app.AppCompatActivity;
@@ -18,11 +21,13 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.content.SharedPreferences;
 import android.widget.Toast;
+import android.content.Context;
 
 // Willow API imports
 import com.android.volley.Request;
 import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.Volley;
+import com.example.ecowattchtechdemo.gamification.DormPointsManager;
 import com.example.ecowattchtechdemo.willow.WillowEnergyDataManager;
 import com.example.ecowattchtechdemo.willow.WillowApiV3Config;
 import com.example.ecowattchtechdemo.willow.models.EnergyDataResponse;
@@ -31,6 +36,10 @@ import com.example.ecowattchtechdemo.gamification.GamificationTester;
 
 import org.json.JSONException;
 import org.json.JSONObject;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 
 public class DashboardActivity extends AppCompatActivity {
@@ -631,6 +640,34 @@ public class DashboardActivity extends AppCompatActivity {
                     tm.applyTheme();
 
                     checkForTasksComplete();
+
+                    //add that the task has been completed to the database
+
+                    //first get the shared preferences
+                    SharedPreferences User = getSharedPreferences("MyAppPrefs", MODE_PRIVATE);
+                    String username = User.getString("Username", "");
+                    isDoneRequest request = new isDoneRequest(username, 1);
+
+                    ApiService apiService = ApiClient.getClient().create(ApiService.class);
+                    apiService.isDone(request).enqueue(new Callback<isDoneResponse>() {
+                        @Override
+                        public void onResponse(Call<isDoneResponse> call, Response<isDoneResponse> response) {
+                            if (response.isSuccessful() && response.body() != null) {
+                                if ("success".equals(response.body().getStatus())) {
+                                    Toast.makeText(DashboardActivity.this, "Well done! Check in 1 complete", Toast.LENGTH_SHORT).show();
+                                } else {
+                                    Toast.makeText(DashboardActivity.this, "Checkin Failed: " + response.body().getMessage(), Toast.LENGTH_SHORT).show();
+                                }
+                            } else {
+                                Toast.makeText(DashboardActivity.this, "API Error", Toast.LENGTH_SHORT).show();
+                            }
+                        }
+
+                        @Override
+                        public void onFailure(Call<isDoneResponse> call, Throwable t) {
+                            Toast.makeText(DashboardActivity.this, "Network Error: " + t.getMessage(), Toast.LENGTH_LONG).show();
+                        }
+                    });
                 }
                 break;
             case 2: // task 2
@@ -652,6 +689,34 @@ public class DashboardActivity extends AppCompatActivity {
                     tm.applyTheme();
 
                     checkForTasksComplete();
+
+                    //add that the task has been completed to the database
+
+                    //first get the shared preferences
+                    SharedPreferences User = getSharedPreferences("MyAppPrefs", MODE_PRIVATE);
+                    String username = User.getString("Username", "");
+                    isDoneRequest request = new isDoneRequest(username, 2);
+
+                    ApiService apiService = ApiClient.getClient().create(ApiService.class);
+                    apiService.isDone(request).enqueue(new Callback<isDoneResponse>() {
+                        @Override
+                        public void onResponse(Call<isDoneResponse> call, Response<isDoneResponse> response) {
+                            if (response.isSuccessful() && response.body() != null) {
+                                if ("success".equals(response.body().getStatus())) {
+                                    Toast.makeText(DashboardActivity.this, "Well done! Check in 2 complete", Toast.LENGTH_SHORT).show();
+                                } else {
+                                    Toast.makeText(DashboardActivity.this, "Checkin Failed: " + response.body().getMessage(), Toast.LENGTH_SHORT).show();
+                                }
+                            } else {
+                                Toast.makeText(DashboardActivity.this, "API Error", Toast.LENGTH_SHORT).show();
+                            }
+                        }
+
+                        @Override
+                        public void onFailure(Call<isDoneResponse> call, Throwable t) {
+                            Toast.makeText(DashboardActivity.this, "Network Error: " + t.getMessage(), Toast.LENGTH_LONG).show();
+                        }
+                    });
                 }
                 break;
             case 3: // task 3
@@ -673,6 +738,34 @@ public class DashboardActivity extends AppCompatActivity {
                     tm.applyTheme();
 
                     checkForTasksComplete();
+
+                    //add that the task has been completed to the database
+
+                    //first get the shared preferences
+                    SharedPreferences User = getSharedPreferences("MyAppPrefs", MODE_PRIVATE);
+                    String username = User.getString("Username", "");
+                    isDoneRequest request = new isDoneRequest(username, 4);
+
+                    ApiService apiService = ApiClient.getClient().create(ApiService.class);
+                    apiService.isDone(request).enqueue(new Callback<isDoneResponse>() {
+                        @Override
+                        public void onResponse(Call<isDoneResponse> call, Response<isDoneResponse> response) {
+                            if (response.isSuccessful() && response.body() != null) {
+                                if ("success".equals(response.body().getStatus())) {
+                                    Toast.makeText(DashboardActivity.this, "Well done! Check in 3 complete", Toast.LENGTH_SHORT).show();
+                                } else {
+                                    Toast.makeText(DashboardActivity.this, "Checkin Failed: " + response.body().getMessage(), Toast.LENGTH_SHORT).show();
+                                }
+                            } else {
+                                Toast.makeText(DashboardActivity.this, "API Error", Toast.LENGTH_SHORT).show();
+                            }
+                        }
+
+                        @Override
+                        public void onFailure(Call<isDoneResponse> call, Throwable t) {
+                            Toast.makeText(DashboardActivity.this, "Network Error: " + t.getMessage(), Toast.LENGTH_LONG).show();
+                        }
+                    });
                 }
                 break;
         } // end switch statement
