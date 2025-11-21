@@ -71,6 +71,12 @@ public class LoginFragment extends Fragment {
                             //calculate each of if the user has done each of the daily tasks
                             Integer completedTasks = body.getUser().getIsDone();
 
+                            //if completedTasks is greater than 7, put it to 7
+                            if(completedTasks > 7)
+                            {
+                                completedTasks = 7;
+                            }
+
                             //the way this works is the number in it's binary representation corresponds to which tasks have been done
                             // e.g. 5 = 101 in binary means tasks 1 and 3
                             SharedPreferences tasks = requireActivity().getSharedPreferences("DailyTasks", Context.MODE_PRIVATE);
@@ -79,7 +85,7 @@ public class LoginFragment extends Fragment {
                             tasks_editor.putBoolean("checklist_item_2", (completedTasks & 0b010) != 0);
                             tasks_editor.putBoolean("checklist_item_3", (completedTasks & 0b100) != 0);
 
-                            if(completedTasks >= 7)
+                            if(completedTasks == 7)
                             {
                                 //set everything complete if the number is 7 or more
                                 tasks_editor.putBoolean("all_tasks", true);
