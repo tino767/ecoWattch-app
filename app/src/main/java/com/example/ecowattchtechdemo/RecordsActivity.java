@@ -69,7 +69,11 @@ public class RecordsActivity extends AppCompatActivity {
         // Setup back button with animation
         backButton.setOnClickListener(view -> {
             animateClickFeedback(view);
-            view.postDelayed(this::finish, 150);
+            view.postDelayed(() -> {
+                finish();
+                // Reverse animation: slide out to left, dashboard slides in from right
+                overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left);
+            }, 150);
         });
     }
 
@@ -93,10 +97,11 @@ public class RecordsActivity extends AppCompatActivity {
      */
     private void selectDay(int dayIndex) {
         selectedDayIndex = dayIndex;
-        // Update bar chart to reflect selection
+
+        // Update bar chart to reflect selection (simple color change)
         updateBarChart();
-        // Update energy label for selected day
-        updateEnergyLabel();
+        // Update energy label for selected day with fade animation
+        updateEnergyLabelWithAnimation();
     }
 
     /**
@@ -111,10 +116,57 @@ public class RecordsActivity extends AppCompatActivity {
     }
 
     /**
-     * Create and display the bar chart for weekly energy usage
+     * Update the energy label with fade animation
+     */
+    private void updateEnergyLabelWithAnimation() {
+        if (selectedDayIndex >= 0 && selectedDayIndex < weeklyEnergyData.size()) {
+            DailyEnergyData selectedData = weeklyEnergyData.get(selectedDayIndex);
+            String newText = String.format("%s: %,d kWh",
+                dayNamesFull[selectedDayIndex], selectedData.energyUsageKwh);
+
+            // Fade out
+            selectedDayEnergyLabel.animate()
+                .alpha(0f)
+                .setDuration(150)
+                .setInterpolator(new AccelerateDecelerateInterpolator())
+                .withEndAction(() -> {
+                    // Update text
+                    selectedDayEnergyLabel.setText(newText);
+                    // Fade in
+                    selectedDayEnergyLabel.animate()
+                        .alpha(1f)
+                        .setDuration(150)
+                        .start();
+                })
+                .start();
+        }
+    }
+
+    /**
+     * Create and display the bar chart for weekly energy usage with entrance animation
      */
     private void setupBarChart() {
         updateBarChart();
+
+        // Add entrance animation for all bars
+        for (int i = 0; i < barChartContainer.getChildCount(); i++) {
+            View barContainer = barChartContainer.getChildAt(i);
+            final int itemIndex = i;
+
+            // Start with bars invisible and below
+            barContainer.setAlpha(0f);
+            barContainer.setTranslationY(30f);
+
+            // Animate entrance with stagger
+            barContainer.postDelayed(() -> {
+                barContainer.animate()
+                    .alpha(1f)
+                    .translationY(0f)
+                    .setDuration(400)
+                    .setInterpolator(new AccelerateDecelerateInterpolator())
+                    .start();
+            }, (long) itemIndex * 80); // 80ms stagger between bars
+        }
     }
 
     /**

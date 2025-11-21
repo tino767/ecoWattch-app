@@ -94,7 +94,11 @@ public class ShopActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 animateClickFeedback(view);
-                view.postDelayed(() -> finish(), 150);
+                view.postDelayed(() -> {
+                    finish();
+                    // Reverse animation: slide out to right, dashboard slides in from left
+                    overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right);
+                }, 150);
             }
         });
 

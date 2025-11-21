@@ -1,5 +1,6 @@
 package com.example.ecowattchtechdemo;
 
+import android.animation.ValueAnimator;
 import android.graphics.Color;
 import android.os.Bundle;
 import androidx.appcompat.app.AppCompatActivity;
@@ -7,6 +8,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.content.Intent;
 import android.widget.LinearLayout;
+import android.widget.RelativeLayout;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
@@ -45,7 +47,10 @@ public class DashboardActivity extends AppCompatActivity {
     private Random random;
     private DecimalFormat decimalFormat;
     private TextView shopPointsText; // Reference to shop button's points display
-    
+
+    // Store previous values for counter animations
+    private int previousShopPoints = 0;
+
     // Live data configuration
     private String currentDormName = "TINSLEY";
     private static final long UPDATE_INTERVAL = 60000; // 1 minute instead of 10 seconds to reduce constant refresh
@@ -270,7 +275,7 @@ public class DashboardActivity extends AppCompatActivity {
     }
 
     /**
-     * Update the shop button to display current spendable points
+     * Update the shop button to display current spendable points with animated counter
      */
     private void updateShopPointsDisplay() {
         if (shopPointsText == null) {
@@ -284,17 +289,38 @@ public class DashboardActivity extends AppCompatActivity {
 
             int spendablePoints = pointsManager.getIndividualSpendablePoints();
 
-            // Format the points with comma separators (e.g., "1,250 pts")
-            String formattedPoints = decimalFormat.format(spendablePoints) + " pts";
+            // Animate the counter from previous value to new value
+            animateShopPointsCounter(previousShopPoints, spendablePoints);
+            previousShopPoints = spendablePoints;
 
-            shopPointsText.setText(formattedPoints);
-
-            Log.d(TAG, "💰 Shop button updated with spendable points: " + formattedPoints);
+            Log.d(TAG, "💰 Shop button updated with spendable points: " + spendablePoints);
 
         } catch (Exception e) {
             Log.e(TAG, "Error updating shop points display", e);
             shopPointsText.setText("Shop");
         }
+    }
+
+    /**
+     * Animates the shop points counter from old value to new value
+     */
+    private void animateShopPointsCounter(int from, int to) {
+        if (from == to) {
+            // No change, just update text
+            shopPointsText.setText(decimalFormat.format(to) + " pts");
+            return;
+        }
+
+        ValueAnimator animator = ValueAnimator.ofInt(from, to);
+        animator.setDuration(800); // 800ms for smooth counting
+        animator.setInterpolator(new AccelerateDecelerateInterpolator());
+
+        animator.addUpdateListener(animation -> {
+            int value = (int) animation.getAnimatedValue();
+            shopPointsText.setText(decimalFormat.format(value) + " pts");
+        });
+
+        animator.start();
     }
     
     private void setupNavigationButtons() {
@@ -316,7 +342,7 @@ public class DashboardActivity extends AppCompatActivity {
                 view.postDelayed(() -> {
                     Intent intent = new Intent(DashboardActivity.this, RecordsActivity.class);
                     startActivity(intent, android.app.ActivityOptions.makeCustomAnimation(
-                        DashboardActivity.this, R.anim.slide_in_right, R.anim.slide_out_left).toBundle());
+                        DashboardActivity.this, R.anim.slide_in_left, R.anim.slide_out_right).toBundle());
                 }, 150);
             }
         });
@@ -759,10 +785,9 @@ public class DashboardActivity extends AppCompatActivity {
 
                     // mark complete on screen - show checkmark
                     taskIcon.setImageResource(R.drawable.ic_checkmark);
-                    taskIcon.setTag("accent_color");
-                    taskText.setTag("secondary_text");
-
-                    tm.applyTheme();
+                    // Apply accent color directly to this icon only
+                    taskIcon.setColorFilter(getResources().getColor(R.color.text_red, null));
+                    taskText.setTextColor(getResources().getColor(R.color.text_secondary, null));
 
                     checkForTasksComplete();
                 }
@@ -780,10 +805,9 @@ public class DashboardActivity extends AppCompatActivity {
 
                     // mark complete on screen - show checkmark
                     taskIcon.setImageResource(R.drawable.ic_checkmark);
-                    taskIcon.setTag("accent_color");
-                    taskText.setTag("secondary_text");
-
-                    tm.applyTheme();
+                    // Apply accent color directly to this icon only
+                    taskIcon.setColorFilter(getResources().getColor(R.color.text_red, null));
+                    taskText.setTextColor(getResources().getColor(R.color.text_secondary, null));
 
                     checkForTasksComplete();
                 }
@@ -801,10 +825,9 @@ public class DashboardActivity extends AppCompatActivity {
 
                     // mark complete on screen - show checkmark
                     taskIcon.setImageResource(R.drawable.ic_checkmark);
-                    taskIcon.setTag("accent_color");
-                    taskText.setTag("secondary_text");
-
-                    tm.applyTheme();
+                    // Apply accent color directly to this icon only
+                    taskIcon.setColorFilter(getResources().getColor(R.color.text_red, null));
+                    taskText.setTextColor(getResources().getColor(R.color.text_secondary, null));
 
                     checkForTasksComplete();
                 }
@@ -842,7 +865,7 @@ public class DashboardActivity extends AppCompatActivity {
                 checklistItem2.setAlpha(0.5f);
                 checklistItem3.setAlpha(0.5f);
             }
-            
+
             Log.d(TAG, "🎉 All daily tasks completed! Daily check-in triggered.");
         }
     }
@@ -1052,17 +1075,25 @@ public class DashboardActivity extends AppCompatActivity {
         meterFill = findViewById(R.id.meter_fill);
         thresholdIndicator = findViewById(R.id.threshold_indicator);
 
-        // Initialize meter with default value
-        meterFill.post(() -> {
-            // Use yesterday's usage as initial threshold if available
-            if (energyDataManager != null) {
-                double yesterdayThreshold = energyDataManager.getYesterdayEnergyUsage(currentDormName);
-                int dynamicThreshold = yesterdayThreshold > 0 ? (int)yesterdayThreshold : thresholdValue;
-                updateMeter(currentUsage, dynamicThreshold);
-            } else {
-                updateMeter(currentUsage, thresholdValue);
+        // Wait for layout to complete before initializing meter
+        meterFill.getViewTreeObserver().addOnGlobalLayoutListener(
+            new android.view.ViewTreeObserver.OnGlobalLayoutListener() {
+                @Override
+                public void onGlobalLayout() {
+                    // Remove listener to prevent multiple calls
+                    meterFill.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+
+                    // Now layout is complete, initialize meter
+                    if (energyDataManager != null) {
+                        double yesterdayThreshold = energyDataManager.getYesterdayEnergyUsage(currentDormName);
+                        int dynamicThreshold = yesterdayThreshold > 0 ? (int)yesterdayThreshold : thresholdValue;
+                        updateMeter(currentUsage, dynamicThreshold);
+                    } else {
+                        updateMeter(currentUsage, thresholdValue);
+                    }
+                }
             }
-        });
+        );
     }
 
     /**
@@ -1111,35 +1142,28 @@ public class DashboardActivity extends AppCompatActivity {
             heightAnimator.start();
         });
 
-        // Update threshold indicator position with smooth animation
-        thresholdIndicator.post(() -> {
-            ViewGroup.MarginLayoutParams params =
-                (ViewGroup.MarginLayoutParams) thresholdIndicator.getLayoutParams();
-            int meterHeight = thresholdIndicator.getParent() != null ?
-                ((View) thresholdIndicator.getParent()).getHeight() : 0;
+        // Update threshold indicator position (no animation - instant update)
+        int meterHeight = thresholdIndicator.getParent() != null ?
+            ((View) thresholdIndicator.getParent()).getHeight() : 0;
+
+        // Only update if parent is properly measured
+        if (meterHeight > 0 && thresholdIndicator.getHeight() > 0) {
+            RelativeLayout.LayoutParams params =
+                (RelativeLayout.LayoutParams) thresholdIndicator.getLayoutParams();
+
+            // Remove CENTER_VERTICAL rule and add ALIGN_PARENT_BOTTOM rule
+            params.addRule(RelativeLayout.CENTER_VERTICAL, 0);
+            params.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM, RelativeLayout.TRUE);
 
             // Position from bottom (inverse of percentage)
             int targetMarginBottom = (int) (meterHeight * thresholdPercentage) -
                 (thresholdIndicator.getHeight() / 2);
-            int currentMarginBottom = params.bottomMargin;
 
-            // Animate threshold indicator movement
-            ObjectAnimator marginAnimator = ObjectAnimator.ofInt(
-                thresholdIndicator, "marginBottom", currentMarginBottom, targetMarginBottom);
-            marginAnimator.setDuration(500);
-            marginAnimator.setInterpolator(new android.view.animation.AccelerateDecelerateInterpolator());
-
-            marginAnimator.addUpdateListener(animation -> {
-                int animatedMargin = (int) animation.getAnimatedValue();
-                ViewGroup.MarginLayoutParams p =
-                    (ViewGroup.MarginLayoutParams) thresholdIndicator.getLayoutParams();
-                p.bottomMargin = animatedMargin;
-                p.topMargin = 0;
-                thresholdIndicator.setLayoutParams(p);
-            });
-
-            marginAnimator.start();
-        });
+            // Set position instantly without animation
+            params.bottomMargin = targetMarginBottom;
+            params.topMargin = 0;
+            thresholdIndicator.setLayoutParams(params);
+        }
     }
 
     /**
