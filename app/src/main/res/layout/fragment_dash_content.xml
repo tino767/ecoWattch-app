@@ -70,7 +70,7 @@
             android:textColor="@color/text_secondary"
             android:textSize="12sp" />
 
-        <!-- Potential Energy Pill -->
+        <!-- Rally Points Pill -->
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -86,7 +86,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:fontFamily="@font/matrixtype_display"
-                android:text="237"
+                android:text="Loading..."
                 android:textColor="@color/text_red"
                 android:textSize="14sp"
                 android:textStyle="bold" />
@@ -97,7 +97,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:fontFamily="@font/matrixtype_display"
-                android:text=" Potential Energy"
+                android:text=" Rally Points"
                 android:textColor="@color/white"
                 android:textSize="14sp"
                 android:textStyle="bold" />

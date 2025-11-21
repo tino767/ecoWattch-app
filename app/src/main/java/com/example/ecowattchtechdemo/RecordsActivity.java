@@ -37,7 +37,7 @@ public class RecordsActivity extends AppCompatActivity {
     private TextView thirdPlaceDorm;
 
     // Day selection
-    private int selectedDayIndex = 3; // Default: Wednesday (index 3)
+    private int selectedDayIndex = 0; // Will be set to current day in onCreate()
     private int currentDayIndex; // Current day of the week (0 = Sunday, 6 = Saturday)
     private String[] dayNames = {"sun", "mon", "tue", "wed", "thu", "fri", "sat"};
     private String[] dayNamesFull = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
@@ -62,6 +62,9 @@ public class RecordsActivity extends AppCompatActivity {
         Calendar calendar = Calendar.getInstance();
         currentDayIndex = calendar.get(Calendar.DAY_OF_WEEK) - 1; // Convert to 0-based index
 
+        // Set default selection to current day for better UX
+        selectedDayIndex = currentDayIndex;
+
         // Initialize empty data structures for real API data
         initializeDataStructures();
 
@@ -79,8 +82,8 @@ public class RecordsActivity extends AppCompatActivity {
             animateClickFeedback(view);
             view.postDelayed(() -> {
                 finish();
-                // Reverse animation: slide out to left, dashboard slides in from right
-                overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left);
+                // Fade animation for smooth page transition
+                overridePendingTransition(R.anim.fade_in, R.anim.fade_out);
             }, 150);
         });
 
@@ -348,9 +351,9 @@ public class RecordsActivity extends AppCompatActivity {
             );
             leftText.setLayoutParams(leftParams);
 
-            // Right side: potential energy
+            // Right side: rally points
             TextView rightText = new TextView(this);
-            rightText.setText(String.format("%d potential energy", entry.potentialEnergy));
+            rightText.setText(String.format("%d rally points", entry.potentialEnergy));
             rightText.setTextColor(ContextCompat.getColor(this, R.color.white));
             rightText.setTextSize(13);
             rightText.setTypeface(getResources().getFont(R.font.matrixtype_display));
@@ -529,10 +532,10 @@ public class RecordsActivity extends AppCompatActivity {
         android.util.Log.d("RecordsActivity", "🏆 BEFORE SORTING - Reading points for each dorm:");
         
         for (String dorm : dorms) {
-            // Use actual potential energy points from gamification system
+            // Use actual rally points from gamification system
             int potentialEnergyPoints = pointsManager.getDormTotalPoints(dorm);
-            
-            android.util.Log.d("RecordsActivity", "🏆 " + dorm + " has " + potentialEnergyPoints + " potential energy points");
+
+            android.util.Log.d("RecordsActivity", "🏆 " + dorm + " has " + potentialEnergyPoints + " rally points");
             
             entries.add(new LeaderboardEntry(0, dorm, potentialEnergyPoints));
         }
@@ -543,7 +546,7 @@ public class RecordsActivity extends AppCompatActivity {
             android.util.Log.d("RecordsActivity", "🏆   " + entry.dormName + " = " + entry.potentialEnergy + " points");
         }
         
-        // Sort by potential energy points (highest first) - SAME as DormPointsManager.getDormPosition()
+        // Sort by rally points (highest first) - SAME as DormPointsManager.getDormPosition()
         Collections.sort(entries, new Comparator<LeaderboardEntry>() {
             @Override
             public int compare(LeaderboardEntry a, LeaderboardEntry b) {

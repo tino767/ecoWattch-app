@@ -741,12 +741,13 @@ public class WillowEnergyDataManager {
     }
     
     /**
-     * Get individual spendable points (for UI display)
+     * Get dorm's potential energy points (collective dorm score that determines leaderboard placement)
      */
     public int getDormPotentialEnergy(String buildingName) {
         if (pointsManager != null) {
-            // Return individual spendable points for UI display (not dorm score points)
-            return pointsManager.getIndividualSpendablePoints();
+            // Return dorm's total points (potential energy) which determines leaderboard placement
+            String dormName = mapBuildingNameToDorm(buildingName);
+            return pointsManager.getDormTotalPoints(dormName);
         }
         return 0;
     }
