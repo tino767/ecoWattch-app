@@ -22,7 +22,7 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="8dp"
             android:fontFamily="@font/matrixtype_display"
-            android:text="TINSLEY - 1ST PLACE"
+            android:text="Loading..."
             android:textColor="@color/white"
             android:textSize="16sp" />
 
@@ -126,6 +126,7 @@
             android:orientation="vertical">
 
             <TextView
+                android:id="@+id/leaderboard_first_place"
                 android:tag="dynamic_text"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -136,6 +137,7 @@
                 android:textSize="14sp" />
 
             <TextView
+                android:id="@+id/leaderboard_second_place"
                 android:tag="dynamic_text"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -146,6 +148,7 @@
                 android:textSize="14sp" />
 
             <TextView
+                android:id="@+id/leaderboard_third_place"
                 android:tag="dynamic_text"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"

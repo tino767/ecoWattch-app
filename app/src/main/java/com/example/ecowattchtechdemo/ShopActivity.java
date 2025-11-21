@@ -78,8 +78,8 @@ public class ShopActivity extends AppCompatActivity {
 
         // load and display stored username/dormitory
         SharedPreferences prefs = getSharedPreferences("MyAppPrefs", Context.MODE_PRIVATE);
-        String username = prefs.getString("Username", "Valentino_Valero");
-        String dorm = prefs.getString("Dormitory", "Tinsley");
+        String username = prefs.getString("Username", "");
+        String dorm = prefs.getString("Dormitory", "");
 
         usernameText.setText(username);
         dormitoryText.setText(dorm);
@@ -105,10 +105,14 @@ public class ShopActivity extends AppCompatActivity {
         // initialize ThemeManager
         tm = new ThemeManager(this);
 
-        // Fetch palettes from API
+        // Initialize empty lists first
+        palletsList = new ArrayList<>();
+        ownedList = new ArrayList<>();
+
+        // Fetch palettes from API and initialize UI when response comes
         fetchPalettesFromApiAndInit();
 
-        initializeSampleData();
+        // Setup UI components (with empty data initially)
         setupRecyclerViews();
         setupTabs();
     }
@@ -365,6 +369,11 @@ public class ShopActivity extends AppCompatActivity {
                             paletteColors.put(key, arr);
                             Log.d(TAG, "Updated paletteColors[" + key + "] = " + java.util.Arrays.toString(arr));
                         }
+                        
+                        // IMPORTANT: Update UI with new palette data
+                        runOnUiThread(() -> {
+                            updatePalettesWithApiData();
+                        });
                     }
                 } else {
                     Log.w(TAG, "Palettes API response unsuccessful or empty");
@@ -380,6 +389,55 @@ public class ShopActivity extends AppCompatActivity {
 
     private String safeHex(String hex) {
         return (hex != null && !hex.isEmpty()) ? hex : "#000000";
+    }
+
+    /**
+     * Update the palettes list and UI with API data
+     */
+    private void updatePalettesWithApiData() {
+        Log.d(TAG, "Updating palettes with API data");
+        
+        // Clear existing palettes list
+        palletsList.clear();
+        
+        // Recreate palette items with API data
+        for (String paletteName : paletteColors.keySet()) {
+            String[] colors = paletteColors.get(paletteName);
+            if (colors != null && colors.length >= 7) {
+                ShopItem item = new ShopItem(paletteName, 500, colors[5], colors[6]);
+                
+                // Set ownership based on hardcoded values for now
+                if ("PEACH".equals(paletteName) || "BLUE".equals(paletteName)) {
+                    item.setOwned(true);
+                }
+                
+                palletsList.add(item);
+                Log.d(TAG, "Added palette: " + paletteName + " with colors: " + java.util.Arrays.toString(colors));
+            }
+        }
+        
+        // Update owned list with API data
+        ownedList.clear();
+        for (ShopItem item : palletsList) {
+            if (item.isOwned()) {
+                ShopItem ownedItem = new ShopItem(item.getName(), item.getPrice(), 
+                    paletteColors.get(item.getName())[5], paletteColors.get(item.getName())[6]);
+                ownedItem.setOwned(true);
+                ownedList.add(ownedItem);
+            }
+        }
+        
+        // Sort palettes and notify adapters
+        sortPalettesByOwnership();
+        
+        if (palletsAdapter != null) {
+            palletsAdapter.notifyDataSetChanged();
+        }
+        if (ownedAdapter != null) {
+            ownedAdapter.notifyDataSetChanged();
+        }
+        
+        Log.d(TAG, "UI updated with " + palletsList.size() + " palettes from API");
     }
 
     /**
