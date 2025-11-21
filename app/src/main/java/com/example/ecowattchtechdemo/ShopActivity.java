@@ -30,7 +30,7 @@ import com.google.gson.Gson;
 public class ShopActivity extends AppCompatActivity {
     private static final String TAG = "ShopActivity";
     TextView backButton;
-    TextView tabPallets, tabOwned, tabMore;
+    TextView tabPallets, tabOwned;
     RecyclerView palletsRecycler, ownedRecycler;
 
     TextView usernameText, dormitoryText, energyPointsText;
@@ -66,7 +66,6 @@ public class ShopActivity extends AppCompatActivity {
         backButton = findViewById(R.id.back_button);
         tabPallets = findViewById(R.id.tab_pallets);
         tabOwned = findViewById(R.id.tab_owned);
-        tabMore = findViewById(R.id.tab_more);
         palletsRecycler = findViewById(R.id.pallets_recycler);
         ownedRecycler = findViewById(R.id.owned_recycler);
 
@@ -255,6 +254,10 @@ public class ShopActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 switchToTab(tabPallets);
+
+                // Sort palettes: unowned first, owned last
+                sortPalettesByOwnership();
+
                 palletsRecycler.setVisibility(View.VISIBLE);
                 ownedRecycler.setVisibility(View.GONE);
             }
@@ -270,16 +273,30 @@ public class ShopActivity extends AppCompatActivity {
             }
         });
 
-        // More tab click listener (placeholder for alpha)
-        tabMore.setOnClickListener(new View.OnClickListener() {
+        // Set initial tab state and sort
+        sortPalettesByOwnership();
+        switchToTab(tabPallets);
+    }
+
+    /**
+     * Sort palettes list: unowned items first, owned items last
+     */
+    private void sortPalettesByOwnership() {
+        java.util.Collections.sort(palletsList, new java.util.Comparator<ShopItem>() {
             @Override
-            public void onClick(View view) {
-                // Placeholder for future tabs like icons
+            public int compare(ShopItem item1, ShopItem item2) {
+                // Unowned (false) should come before owned (true)
+                // false < true, so we compare the boolean values
+                return Boolean.compare(item1.isOwned(), item2.isOwned());
             }
         });
 
-        // Set initial tab state
-        switchToTab(tabPallets);
+        // Notify adapter that data has changed
+        if (palletsAdapter != null) {
+            palletsAdapter.notifyDataSetChanged();
+        }
+
+        Log.d(TAG, "Palettes sorted: unowned first, owned last");
     }
 
     private void switchToTab(TextView selectedTab) {
@@ -299,7 +316,6 @@ public class ShopActivity extends AppCompatActivity {
         // Reset all tabs to normal style (preserving custom font)
         tabPallets.setTypeface(matrixFont, Typeface.NORMAL);
         tabOwned.setTypeface(matrixFont, Typeface.NORMAL);
-        tabMore.setTypeface(matrixFont, Typeface.NORMAL);
 
         // Set selected tab to bold (preserving custom font)
         selectedTab.setTypeface(matrixFont, Typeface.BOLD);
@@ -395,6 +411,10 @@ public class ShopActivity extends AppCompatActivity {
         if (success) {
             // Update item ownership
             item.setOwned(true);
+
+            // Re-sort the palettes list so owned item moves to the end
+            sortPalettesByOwnership();
+
             palletsAdapter.notifyItemChanged(position);
 
             // Add to owned list
