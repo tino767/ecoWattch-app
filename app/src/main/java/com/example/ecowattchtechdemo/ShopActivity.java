@@ -191,20 +191,8 @@ public class ShopActivity extends AppCompatActivity {
 
                 // check for owned - only select if palette is owned
                 if (item.isOwned()) {
-                    // Apply the owned palette
-                    SharedPreferences prefs = getSharedPreferences("ThemePrefs", MODE_PRIVATE);
-                    SharedPreferences.Editor editor = prefs.edit();
-
-                    editor.putString("primary_color", colors[0]);
-                    editor.putString("secondary_color", colors[1]);
-                    editor.putString("accent_color", colors[2]);
-                    editor.putString("background_main", colors[3]);
-                    editor.putString("background_light", colors[4]);
-
-                    editor.apply();
-
-                    // Apply theme immediately
-                    tm.applyTheme();
+                    // Apply the owned palette (user-specific)
+                    applyPaletteColors(colors);
 
                     Toast.makeText(ShopActivity.this, "Applied " + item.getName() + " palette", Toast.LENGTH_SHORT).show();
                 } else {
@@ -231,20 +219,8 @@ public class ShopActivity extends AppCompatActivity {
                 String[] colors = paletteColors.get(item.getName());
                 if (colors == null || colors.length < 5) return;
 
-                // Apply the owned palette
-                SharedPreferences prefs = getSharedPreferences("ThemePrefs", MODE_PRIVATE);
-                SharedPreferences.Editor editor = prefs.edit();
-
-                editor.putString("primary_color", colors[0]);
-                editor.putString("secondary_color", colors[1]);
-                editor.putString("accent_color", colors[2]);
-                editor.putString("background_main", colors[3]);
-                editor.putString("background_light", colors[4]);
-
-                editor.apply();
-
-                // Apply theme immediately
-                tm.applyTheme();
+                // Apply the owned palette (user-specific)
+                applyPaletteColors(colors);
 
                 Toast.makeText(ShopActivity.this, "Applied " + item.getName() + " palette", Toast.LENGTH_SHORT).show();
             }
@@ -552,26 +528,47 @@ public class ShopActivity extends AppCompatActivity {
     }
 
     /**
-     * Apply a palette from ShopItem
+     * Apply a palette from ShopItem (user-specific)
      */
     private void applyPalette(ShopItem item) {
         // Get the full color array from paletteColors map
         String[] colors = paletteColors.get(item.getName());
         if (colors == null || colors.length < 5) return;
 
+        applyPaletteColors(colors);
+    }
+
+    /**
+     * Apply palette colors to user-specific theme preferences
+     */
+    private void applyPaletteColors(String[] colors) {
+        if (colors == null || colors.length < 5) return;
+
+        // Get current username for user-specific storage
+        SharedPreferences userPrefs = getSharedPreferences("MyAppPrefs", MODE_PRIVATE);
+        String username = userPrefs.getString("Username", "");
+
+        if (username.isEmpty()) {
+            Log.w(TAG, "No username found - cannot apply palette");
+            return;
+        }
+
         SharedPreferences prefs = getSharedPreferences("ThemePrefs", MODE_PRIVATE);
         SharedPreferences.Editor editor = prefs.edit();
 
-        editor.putString("primary_color", colors[0]);
-        editor.putString("secondary_color", colors[1]);
-        editor.putString("accent_color", colors[2]);
-        editor.putString("background_main", colors[3]);
-        editor.putString("background_light", colors[4]);
+        // Store colors with user-specific keys
+        editor.putString("primary_color_" + username, colors[0]);
+        editor.putString("secondary_color_" + username, colors[1]);
+        editor.putString("accent_color_" + username, colors[2]);
+        editor.putString("background_main_" + username, colors[3]);
+        editor.putString("background_light_" + username, colors[4]);
 
         editor.apply();
 
         // Apply theme immediately
         tm.applyTheme();
+
+        Log.d(TAG, "Applied palette colors for user: " + username);
     }
 
     /**
@@ -620,32 +617,54 @@ public class ShopActivity extends AppCompatActivity {
     }
 
     /**
-     * Save an owned palette to persistent storage
+     * Save an owned palette to persistent storage (user-specific)
      */
     private void saveOwnedPalette(String paletteName) {
+        // Get current username for user-specific storage
+        SharedPreferences userPrefs = getSharedPreferences("MyAppPrefs", MODE_PRIVATE);
+        String username = userPrefs.getString("Username", "");
+
+        if (username.isEmpty()) {
+            Log.w(TAG, "No username found - cannot save owned palette");
+            return;
+        }
+
         SharedPreferences prefs = getSharedPreferences("ShopPrefs", MODE_PRIVATE);
-        Set<String> ownedPalettes = prefs.getStringSet("owned_palettes", new java.util.HashSet<>());
+        String key = "owned_palettes_" + username;
+        Set<String> ownedPalettes = prefs.getStringSet(key, new java.util.HashSet<>());
 
         // Create a new set to avoid modification issues
         Set<String> updatedOwned = new java.util.HashSet<>(ownedPalettes);
         updatedOwned.add(paletteName);
 
-        prefs.edit().putStringSet("owned_palettes", updatedOwned).apply();
-        Log.d(TAG, "Saved owned palette: " + paletteName + " (total owned: " + updatedOwned.size() + ")");
+        prefs.edit().putStringSet(key, updatedOwned).apply();
+        Log.d(TAG, "Saved owned palette for " + username + ": " + paletteName + " (total owned: " + updatedOwned.size() + ")");
     }
 
     /**
-     * Get all owned palettes from persistent storage
+     * Get all owned palettes from persistent storage (user-specific)
      */
     private Set<String> getOwnedPalettes() {
+        // Get current username for user-specific storage
+        SharedPreferences userPrefs = getSharedPreferences("MyAppPrefs", MODE_PRIVATE);
+        String username = userPrefs.getString("Username", "");
+
+        if (username.isEmpty()) {
+            Log.w(TAG, "No username found - returning default palette only");
+            Set<String> defaultSet = new java.util.HashSet<>();
+            defaultSet.add("PEACH");
+            return defaultSet;
+        }
+
         SharedPreferences prefs = getSharedPreferences("ShopPrefs", MODE_PRIVATE);
-        Set<String> ownedPalettes = prefs.getStringSet("owned_palettes", new java.util.HashSet<>());
+        String key = "owned_palettes_" + username;
+        Set<String> ownedPalettes = prefs.getStringSet(key, new java.util.HashSet<>());
 
         // Always include PEACH as owned by default
         Set<String> result = new java.util.HashSet<>(ownedPalettes);
         result.add("PEACH");
 
-        Log.d(TAG, "Loaded owned palettes: " + result);
+        Log.d(TAG, "Loaded owned palettes for " + username + ": " + result);
         return result;
     }
 
