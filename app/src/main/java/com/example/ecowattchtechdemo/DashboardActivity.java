@@ -1211,6 +1211,9 @@ public class DashboardActivity extends AppCompatActivity {
             } else {
                 Log.d(TAG, "🎯 No real data available for meter initialization");
                 updateMeter(0, 0); // No data state
+            }
+        });
+
         // Wait for layout to complete before initializing meter
         meterFill.getViewTreeObserver().addOnGlobalLayoutListener(
             new android.view.ViewTreeObserver.OnGlobalLayoutListener() {
@@ -1251,12 +1254,6 @@ public class DashboardActivity extends AppCompatActivity {
         }
     }
 
-    /**
-     * Updates the energy meter display with relative scaling
-     * Triangle shows yesterday's total as today's goal
-     * @param todayTotal Today's accumulated energy total in kWh  
-     * @param yesterdayTotal Yesterday's total energy in kWh (triangle position = goal)
-     */
     /**
      * Start the rotating display cycle showing Today's Total (kWh), Yesterday's Goal (kWh), Current Load (kW), and Today's Emissions
      */
@@ -1329,8 +1326,9 @@ public class DashboardActivity extends AppCompatActivity {
     }
 
     private void updateMeter(int todayTotal, int yesterdayTotal) {
+        Log.d(TAG, "🎯 ===== METER UPDATE START =====");
         Log.d(TAG, "🎯 Meter Input - Raw Today: " + todayTotal + " kWh, Raw Yesterday: " + yesterdayTotal + " kWh");
-        
+
         // Handle real Willow API data - these are cumulative totals, convert to daily usage properly
         int actualTodayUsage = todayTotal;
         int actualYesterdayUsage = yesterdayTotal;
@@ -1379,79 +1377,92 @@ public class DashboardActivity extends AppCompatActivity {
         float thresholdPercentage = Math.max(0.02f, Math.min(0.98f, actualYesterdayUsage / meterRange));
         
         Log.d(TAG, "🎯 Meter Scaling - Max: " + (int)maxMeterValue + " kWh, Today: " + (todayPercentage * 100) + "%, Goal: " + (thresholdPercentage * 100) + "%");
+        Log.d(TAG, "🎯 FINAL VALUES - Actual Today: " + actualTodayUsage + " kWh, Actual Yesterday: " + actualYesterdayUsage + " kWh");
+        Log.d(TAG, "🎯 FINAL PERCENTAGES - Today: " + (todayPercentage * 100) + "% (fill), Yesterday: " + (thresholdPercentage * 100) + "% (threshold)");
 
         // Store final values for UI updates
         final float finalTodayPercentage = todayPercentage;
         final float finalThresholdPercentage = thresholdPercentage;
         final int finalActualTodayUsage = actualTodayUsage; // For color calculation
         final int finalActualYesterdayTotal = actualYesterdayUsage; // For color calculation
-     * Updates the energy meter display with smooth animation
-     * @param usage Current energy usage in kw (0-600)
-     * @param threshold Threshold value in kw
-     */
-    private void updateMeter(int usage, int threshold) {
-        // Calculate meter fill height as percentage
-        float usagePercentage = Math.min(((float) usage / MAX_USAGE), 1.0f);
-        float thresholdPercentage = Math.min(((float) threshold / MAX_USAGE), 1.0f);
 
-        // Update meter fill height with smooth animation
+        // Update meter UI with calculated values
         meterFill.post(() -> {
-            ViewGroup.LayoutParams params = meterFill.getLayoutParams();
-            int meterHeight = meterFill.getParent() != null ?
-                ((View) meterFill.getParent()).getHeight() : 0;
+            // Get parent height for calculations
+            ViewGroup parent = (ViewGroup) meterFill.getParent();
+            if (parent == null) return;
 
-            int targetHeight = (int) (meterHeight * usagePercentage);
+            int parentHeight = parent.getHeight();
+            if (parentHeight <= 0) return;
 
-            // Animate height change smoothly
-            ObjectAnimator heightAnimator = ObjectAnimator.ofInt(meterFill, "height",
-                meterFill.getHeight(), targetHeight);
-            heightAnimator.setDuration(500);
-            heightAnimator.setInterpolator(new android.view.animation.AccelerateDecelerateInterpolator());
+            // Calculate target height based on today's usage percentage
+            int targetHeight = (int) (parentHeight * finalTodayPercentage);
+            int currentHeight = meterFill.getHeight();
+
+            Log.d(TAG, "🎯 Meter animation: currentHeight=" + currentHeight + "px, targetHeight=" + targetHeight + "px, parentHeight=" + parentHeight + "px");
+
+            // Animate meter fill height using ValueAnimator (works with layout params)
+            ValueAnimator heightAnimator = ValueAnimator.ofInt(currentHeight, targetHeight);
+            heightAnimator.setDuration(800);
+            heightAnimator.setInterpolator(new AccelerateDecelerateInterpolator());
 
             heightAnimator.addUpdateListener(animation -> {
-                // Update color during animation based on current percentage
                 int animatedHeight = (int) animation.getAnimatedValue();
-                float currentPercentage = meterHeight > 0 ?
-                    (float) animatedHeight / meterHeight : 0;
 
+                // Update the meter fill layout params
+                ViewGroup.LayoutParams layoutParams = meterFill.getLayoutParams();
+                if (layoutParams != null) {
+                    layoutParams.height = animatedHeight;
+                    meterFill.setLayoutParams(layoutParams);
+                }
+
+                // Update color based on current animated height
+                float currentPercentage = parentHeight > 0 ? (float) animatedHeight / parentHeight : 0;
                 int color = getMeterColor(currentPercentage);
-                android.graphics.drawable.GradientDrawable drawable =
-                    (android.graphics.drawable.GradientDrawable)
-                    getResources().getDrawable(R.drawable.meter_fill_shape, null).mutate();
+
+                // Create a GradientDrawable with rounded corners to preserve border radius
+                android.graphics.drawable.GradientDrawable drawable = new android.graphics.drawable.GradientDrawable();
+                drawable.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
                 drawable.setColor(color);
+
+                // Convert 6dp to pixels for corner radius (meter width is 12dp, so 6dp radius = semicircle)
+                float densityDpi = getResources().getDisplayMetrics().density;
+                float radiusPx = 6f * densityDpi; // 6dp converted to pixels
+                drawable.setCornerRadius(radiusPx);
+
                 meterFill.setBackground(drawable);
 
-                // Update layout
-                ViewGroup.LayoutParams p = meterFill.getLayoutParams();
-                p.height = animatedHeight;
-                meterFill.setLayoutParams(p);
+                Log.v(TAG, "🎯 Meter height: " + animatedHeight + "px, color: " + String.format("#%06X", color & 0xFFFFFF));
             });
 
             heightAnimator.start();
+
+            // Update threshold indicator position (the white triangle showing yesterday's goal)
+            if (thresholdIndicator != null && thresholdIndicator.getParent() != null) {
+                ViewGroup thresholdParent = (ViewGroup) thresholdIndicator.getParent();
+                int thresholdParentHeight = thresholdParent.getHeight();
+
+                if (thresholdParentHeight > 0) {
+                    // Position triangle from bottom based on yesterday's percentage
+                    int thresholdTargetMargin = (int) (thresholdParentHeight * finalThresholdPercentage) -
+                        (thresholdIndicator.getHeight() / 2);
+
+                    RelativeLayout.LayoutParams thresholdParams =
+                        (RelativeLayout.LayoutParams) thresholdIndicator.getLayoutParams();
+
+                    // Remove CENTER_VERTICAL and use ALIGN_PARENT_BOTTOM instead
+                    thresholdParams.addRule(RelativeLayout.CENTER_VERTICAL, 0);
+                    thresholdParams.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
+                    thresholdParams.bottomMargin = thresholdTargetMargin;
+                    thresholdParams.topMargin = 0;
+
+                    thresholdIndicator.setLayoutParams(thresholdParams);
+                }
+            }
+
+            Log.d(TAG, "🎯 Meter UI Updated - Fill height: " + targetHeight + "px, Threshold margin: " +
+                ((RelativeLayout.LayoutParams)thresholdIndicator.getLayoutParams()).bottomMargin + "px");
         });
-
-        // Update threshold indicator position (no animation - instant update)
-        int meterHeight = thresholdIndicator.getParent() != null ?
-            ((View) thresholdIndicator.getParent()).getHeight() : 0;
-
-        // Only update if parent is properly measured
-        if (meterHeight > 0 && thresholdIndicator.getHeight() > 0) {
-            RelativeLayout.LayoutParams params =
-                (RelativeLayout.LayoutParams) thresholdIndicator.getLayoutParams();
-
-            // Remove CENTER_VERTICAL rule and add ALIGN_PARENT_BOTTOM rule
-            params.addRule(RelativeLayout.CENTER_VERTICAL, 0);
-            params.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM, RelativeLayout.TRUE);
-
-            // Position from bottom (inverse of percentage)
-            int targetMarginBottom = (int) (meterHeight * thresholdPercentage) -
-                (thresholdIndicator.getHeight() / 2);
-
-            // Set position instantly without animation
-            params.bottomMargin = targetMarginBottom;
-            params.topMargin = 0;
-            thresholdIndicator.setLayoutParams(params);
-        }
     }
 
     /**
@@ -1723,10 +1734,16 @@ public class DashboardActivity extends AppCompatActivity {
         }
         
         int yesterdayForMeter = (int) yesterdayTotal; // Use real data for triangle
-        
+
         updateMeter(todayForMeter, yesterdayForMeter);
         Log.d(TAG, "🎯 METER BAR: Today " + todayForMeter + " kWh, Yesterday " + yesterdayForMeter + " kWh (REAL DATA)");
-        
+
+        // Update yesterday's total text display (linked to meter threshold)
+        if (dashContentFragment != null && yesterdayForMeter > 0) {
+            dashContentFragment.updateYesterdaysTotal(yesterdayForMeter + "kWh");
+            Log.d(TAG, "🎯 Updated yesterday's total display: " + yesterdayForMeter + " kWh");
+        }
+
         // 🎮 Update dorm status/position (conditional based on ranking update schedule)
         if (updateRankings) {
             String position = energyDataManager.getBuildingPosition(data.getBuildingName());
@@ -1927,7 +1944,7 @@ public class DashboardActivity extends AppCompatActivity {
             yesterdayDataString = decimalFormat.format(defaultGoal) + "kWh (Goal)";
             Log.d(TAG, "No yesterday data (combined) - using estimated goal: " + defaultGoal + " kWh (same as meter triangle)");
         }
-        x
+
         // Emissions Calculation (use today's energy total for accuracy)
         // Reasonable bounds: max 10,000 kWh/day = max 8,500 lbs CO2/day
         double todayEmissions = Math.min(todayForMeter * 0.85, 8500); // lbs of CO2 per kWh, capped
@@ -2022,17 +2039,18 @@ public class DashboardActivity extends AppCompatActivity {
      */
     public void manualEnergyCheck() {
         Log.d(TAG, "🎮 Manual energy check requested");
-        
+
         if (energyDataManager != null) {
+            // TODO: GamificationTester class not found - implement or add to project
             // Run the complete test suite first (for development/testing)
-            boolean testsPassed = GamificationTester.runCompleteTest(this);
-            
-            if (testsPassed) {
-                Log.d(TAG, "🎮 ✅ All gamification tests passed!");
-            } else {
-                Log.w(TAG, "🎮 ⚠️ Some gamification tests failed");
-            }
-            
+            // boolean testsPassed = GamificationTester.runCompleteTest(this);
+            //
+            // if (testsPassed) {
+            //     Log.d(TAG, "🎮 ✅ All gamification tests passed!");
+            // } else {
+            //     Log.w(TAG, "🎮 ⚠️ Some gamification tests failed");
+            // }
+
             // Then perform normal manual energy check
             Map<String, Integer> pointChanges = energyDataManager.performManualEnergyCheck();
             
