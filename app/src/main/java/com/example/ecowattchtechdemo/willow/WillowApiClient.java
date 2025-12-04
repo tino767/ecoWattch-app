@@ -53,12 +53,11 @@ public class WillowApiClient {
                     .readTimeout(WillowApiV3Config.READ_TIMEOUT, TimeUnit.MILLISECONDS)
                     .writeTimeout(WillowApiV3Config.WRITE_TIMEOUT, TimeUnit.MILLISECONDS);
             
-            // Add logging interceptor for debugging
-            if (Log.isLoggable(TAG, Log.DEBUG)) {
-                HttpLoggingInterceptor loggingInterceptor = new HttpLoggingInterceptor();
-                loggingInterceptor.setLevel(HttpLoggingInterceptor.Level.BODY);
-                httpClientBuilder.addInterceptor(loggingInterceptor);
-            }
+            // Add logging interceptor for debugging - ALWAYS ENABLED for troubleshooting
+            HttpLoggingInterceptor loggingInterceptor = new HttpLoggingInterceptor();
+            loggingInterceptor.setLevel(HttpLoggingInterceptor.Level.BODY);
+            httpClientBuilder.addInterceptor(loggingInterceptor);
+            Log.d(TAG, "📡 HTTP logging enabled for API requests");
             
             OkHttpClient httpClient = httpClientBuilder.build();
             
