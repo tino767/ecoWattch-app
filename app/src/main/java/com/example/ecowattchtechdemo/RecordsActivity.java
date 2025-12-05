@@ -5,6 +5,7 @@ import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
@@ -260,8 +261,18 @@ public class RecordsActivity extends AppCompatActivity {
             barDrawable.setCornerRadius(12f);
 
             // get colors from shared prefs for programmatic coloring
+            int accent;
+            SharedPreferences userPrefs = getSharedPreferences("MyAppPrefs", Context.MODE_PRIVATE);
+            String username = userPrefs.getString("Username", "");
             SharedPreferences prefs = getSharedPreferences("ThemePrefs", Context.MODE_PRIVATE);
-            int accent = Color.parseColor(prefs.getString("accent_color", "#CD232E"));
+
+            try {
+                // Use user-specific key if username is available
+                String userKey = username.isEmpty() ? "accent_color" : "accent_color" + "_" + username;
+                accent = Color.parseColor(prefs.getString(userKey, "#CD232E"));
+            } catch (Exception e) {
+                accent = Color.parseColor("#CD232E");
+            }
 
             // Color based on selection
             if (i == selectedDayIndex) {

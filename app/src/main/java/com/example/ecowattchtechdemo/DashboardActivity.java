@@ -750,8 +750,18 @@ public class DashboardActivity extends AppCompatActivity {
      */
     private void showTabContent(int tabIndex) {
         // get colors from shared prefs
+        int accent;
+        SharedPreferences userPrefs = getSharedPreferences("MyAppPrefs", Context.MODE_PRIVATE);
+        String username = userPrefs.getString("Username", "");
         SharedPreferences prefs = getSharedPreferences("ThemePrefs", Context.MODE_PRIVATE);
-        int accent = Color.parseColor(prefs.getString("accent_color", "#CD232E"));
+
+        try {
+            // Use user-specific key if username is available
+            String userKey = username.isEmpty() ? "accent_color" : "accent_color" + "_" + username;
+            accent = Color.parseColor(prefs.getString(userKey, "#CD232E"));
+        } catch (Exception e) {
+            accent = Color.parseColor("#CD232E");
+        }
 
         switch (tabIndex) {
             case 0: // Daily Tips (formerly Alerts)
@@ -796,7 +806,7 @@ public class DashboardActivity extends AppCompatActivity {
                     .setDuration(150)
                     .setInterpolator(new android.view.animation.LinearInterpolator())
                     .start();
-                tabProfile.setColorFilter(getResources().getColor(R.color.text_red, null));
+                tabProfile.setColorFilter(accent);
                 // Refresh profile data whenever profile tab is opened
                 loadUserProfile();
                 Log.d(TAG, "Switched to Profile tab - refreshed user data");
@@ -902,9 +912,27 @@ public class DashboardActivity extends AppCompatActivity {
      */
     private void markItemComplete(int checklistItem) {
         // get colors from shared prefs for programmatic coloring
+        int accent;
+        int secondary;
+        SharedPreferences userPrefs = getSharedPreferences("MyAppPrefs", Context.MODE_PRIVATE);
+        String username = userPrefs.getString("Username", "");
         SharedPreferences prefs = getSharedPreferences("ThemePrefs", Context.MODE_PRIVATE);
-        int accent = Color.parseColor(prefs.getString("accent_color", "#CD232E"));
-        int secondary = Color.parseColor(prefs.getString("secondary_text", "#AAAAAA"));
+
+        try {
+            // Use user-specific key if username is available
+            String userKey = username.isEmpty() ? "accent_color" : "accent_color" + "_" + username;
+            accent = Color.parseColor(prefs.getString(userKey, "#CD232E"));
+        } catch (Exception e) {
+            accent = Color.parseColor("#CD232E");
+        }
+
+        try {
+            // Use user-specific key if username is available
+            String userKey = username.isEmpty() ? "secondary_text" : "secondary_text" + "_" + username;
+            secondary = Color.parseColor(prefs.getString(userKey, "#AAAAAA"));
+        } catch (Exception e) {
+            secondary = Color.parseColor("#AAAAAA");
+        }
 
         prefs = getSharedPreferences("DailyTasks", MODE_PRIVATE);
         Boolean taskComplete;
@@ -935,7 +963,6 @@ public class DashboardActivity extends AppCompatActivity {
 
                     //first get the shared preferences
                     SharedPreferences User = getSharedPreferences("MyAppPrefs", MODE_PRIVATE);
-                    String username = User.getString("Username", "");
                     isDoneRequest request = new isDoneRequest(username, 1);
 
                     ApiService apiService = ApiClient.getClient().create(ApiService.class);
@@ -983,7 +1010,6 @@ public class DashboardActivity extends AppCompatActivity {
 
                     //first get the shared preferences
                     SharedPreferences User = getSharedPreferences("MyAppPrefs", MODE_PRIVATE);
-                    String username = User.getString("Username", "");
                     isDoneRequest request = new isDoneRequest(username, 2);
 
                     ApiService apiService = ApiClient.getClient().create(ApiService.class);
@@ -1031,7 +1057,6 @@ public class DashboardActivity extends AppCompatActivity {
 
                     //first get the shared preferences
                     SharedPreferences User = getSharedPreferences("MyAppPrefs", MODE_PRIVATE);
-                    String username = User.getString("Username", "");
                     isDoneRequest request = new isDoneRequest(username, 4);
 
                     ApiService apiService = ApiClient.getClient().create(ApiService.class);

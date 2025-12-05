@@ -62,7 +62,7 @@ public class ThemeManager {
         return themeColors;
     }
 
-    private int getColorFromPrefs(String key, String defaultHex) {
+    public int getColorFromPrefs(String key, String defaultHex) {
         try {
             // Use user-specific key if username is available
             String userKey = username.isEmpty() ? key : key + "_" + username;
