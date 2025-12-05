@@ -791,7 +791,12 @@ public class DashboardActivity extends AppCompatActivity {
      * Mark checklist item as complete when checked
      */
     private void markItemComplete(int checklistItem) {
-        SharedPreferences prefs = getSharedPreferences("DailyTasks", MODE_PRIVATE);
+        // get colors from shared prefs for programmatic coloring
+        SharedPreferences prefs = getSharedPreferences("ThemePrefs", Context.MODE_PRIVATE);
+        int accent = Color.parseColor(prefs.getString("accent_color", "#CD232E"));
+        int secondary = Color.parseColor(prefs.getString("secondary_text", "#AAAAAA"));
+
+        prefs = getSharedPreferences("DailyTasks", MODE_PRIVATE);
         Boolean taskComplete;
         ImageView taskIcon;
         TextView taskText;
@@ -811,8 +816,8 @@ public class DashboardActivity extends AppCompatActivity {
                     // mark complete on screen - show checkmark
                     taskIcon.setImageResource(R.drawable.ic_checkmark);
                     // Apply accent color directly to this icon only
-                    taskIcon.setColorFilter(getResources().getColor(R.color.text_red, null));
-                    taskText.setTextColor(getResources().getColor(R.color.text_secondary, null));
+                    taskIcon.setColorFilter(accent);
+                    taskText.setTextColor(secondary);
 
                     checkForTasksComplete();
 
@@ -859,8 +864,8 @@ public class DashboardActivity extends AppCompatActivity {
                     // mark complete on screen - show checkmark
                     taskIcon.setImageResource(R.drawable.ic_checkmark);
                     // Apply accent color directly to this icon only
-                    taskIcon.setColorFilter(getResources().getColor(R.color.text_red, null));
-                    taskText.setTextColor(getResources().getColor(R.color.text_secondary, null));
+                    taskIcon.setColorFilter(accent);
+                    taskText.setTextColor(secondary);
 
                     checkForTasksComplete();
 
@@ -907,8 +912,8 @@ public class DashboardActivity extends AppCompatActivity {
                     // mark complete on screen - show checkmark
                     taskIcon.setImageResource(R.drawable.ic_checkmark);
                     // Apply accent color directly to this icon only
-                    taskIcon.setColorFilter(getResources().getColor(R.color.text_red, null));
-                    taskText.setTextColor(getResources().getColor(R.color.text_secondary, null));
+                    taskIcon.setColorFilter(accent);
+                    taskText.setTextColor(secondary);
 
                     checkForTasksComplete();
 
