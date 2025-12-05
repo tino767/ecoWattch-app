@@ -29,9 +29,15 @@ import java.util.Map;
 public class ThemeManager {
     private final Context context;
     private final SharedPreferences prefs;
+    private final String username;
 
     public ThemeManager(Context context) {
         this.context = context;
+
+        // Get current username for user-specific theme storage
+        SharedPreferences userPrefs = context.getSharedPreferences("MyAppPrefs", Context.MODE_PRIVATE);
+        this.username = userPrefs.getString("Username", "");
+
         this.prefs = context.getSharedPreferences("ThemePrefs", Context.MODE_PRIVATE);
     }
 
@@ -41,7 +47,7 @@ public class ThemeManager {
         // Safely parse color strings (fall back to defaults)
         // tag everything in activities that needs to change, using these keys
         // strings on the left are the tags, ones on the right
-        //     are keys for the SharedPreferences
+        //     are keys for the SharedPreferences (now user-specific)
         themeColors.put("primary_color", getColorFromPrefs("primary_color", "#FFFFFF"));
         themeColors.put("secondary_color", getColorFromPrefs("secondary_color", "#AAAAAA"));
         themeColors.put("accent_color", getColorFromPrefs("accent_color", "#CD232E"));
@@ -58,7 +64,9 @@ public class ThemeManager {
 
     private int getColorFromPrefs(String key, String defaultHex) {
         try {
-            return Color.parseColor(prefs.getString(key, defaultHex));
+            // Use user-specific key if username is available
+            String userKey = username.isEmpty() ? key : key + "_" + username;
+            return Color.parseColor(prefs.getString(userKey, defaultHex));
         } catch (Exception e) {
             return Color.parseColor(defaultHex);
         }
@@ -235,8 +243,10 @@ public class ThemeManager {
         void onColorExtracted(int color);
     }
 
-    // Save theme colors to SharedPreferences
+    // Save theme colors to SharedPreferences (user-specific)
     public void saveThemeColor(String key, String hexColor) {
-        prefs.edit().putString(key, hexColor).apply();
+        // Use user-specific key if username is available
+        String userKey = username.isEmpty() ? key : key + "_" + username;
+        prefs.edit().putString(userKey, hexColor).apply();
     }
 }
